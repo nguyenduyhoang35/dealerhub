@@ -7,6 +7,7 @@ import {
   EyeOutlined,
   FileTextOutlined,
   ShoppingCartOutlined,
+  QrcodeOutlined,
 } from "@ant-design/icons";
 import {
   fmtVND,
@@ -16,6 +17,8 @@ import {
   PAYMENT_STATUS_TAG,
 } from "@/lib/format";
 import { useOrders } from "@/hooks";
+import { Order } from "@/hooks/types";
+import PaymentModal from "@/components/PaymentModal";
 import dayjs from "dayjs";
 
 const STATUS_OPTIONS = [
@@ -28,7 +31,8 @@ const STATUS_OPTIONS = [
 
 export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
-  const { data, isLoading, isError } = useOrders({ status: statusFilter !== "all" ? statusFilter : undefined });
+  const [paymentOrder, setPaymentOrder] = useState<Order | null>(null);
+  const { data, isLoading, isError, refetch } = useOrders({ status: statusFilter !== "all" ? statusFilter : undefined });
 
   const orders = data?.data || [];
 
@@ -206,18 +210,48 @@ export default function OrdersPage() {
               },
               {
                 title: "",
-                width: 100,
-                render: (_, record) => (
-                  <Link href={`/orders/${record.id}`}>
-                    <Button type="primary" ghost icon={<EyeOutlined />} size="small">
-                      Chi tiết
-                    </Button>
-                  </Link>
-                ),
+                width: 180,
+                render: (_, record) => {
+                  const debt = record.total - record.paid;
+                  return (
+                    <div className="flex gap-1">
+                      {debt > 0 && (
+                        <Button
+                          type="primary"
+                          icon={<QrcodeOutlined />}
+                          size="small"
+                          onClick={() => setPaymentOrder(record)}
+                        >
+                          Thanh toán
+                        </Button>
+                      )}
+                      <Link href={`/orders/${record.id}`}>
+                        <Button type="default" icon={<EyeOutlined />} size="small">
+                          Xem
+                        </Button>
+                      </Link>
+                    </div>
+                  );
+                },
               },
             ]}
           />
         </Card>
+      )}
+
+      {/* Payment Modal */}
+      {paymentOrder && (
+        <PaymentModal
+          open={!!paymentOrder}
+          onClose={() => setPaymentOrder(null)}
+          type="order"
+          orderId={paymentOrder.id}
+          maxAmount={paymentOrder.total - paymentOrder.paid}
+          onSuccess={() => {
+            setPaymentOrder(null);
+            refetch();
+          }}
+        />
       )}
     </div>
   );
