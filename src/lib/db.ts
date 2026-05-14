@@ -29,32 +29,46 @@ export type Agent = {
   created_at: string;
 };
 
+export type Category = {
+  id: number;
+  name: string;
+  sort_order: number;
+  created_at: string;
+};
+
 export type Product = {
   id: number;
   name: string;
   unit: string;
   price: number;
   stock: number;
+  category_id: number | null;
+  category?: Category;
   created_at: string;
 };
 
-export type Driver = {
+export type User = {
   id: number;
   name: string;
-  phone: string;
-  pin: string;
+  email: string;
+  phone: string | null;
+  password: string;
   vehicle_plate: string | null;
-  role: "admin" | "driver";
+  role: "admin" | "driver" | "customer";
+  agent_id: number | null;
   active: boolean;
   created_at: string;
 };
+
+// Alias for backward compatibility
+export type Driver = User;
 
 export type OrderStatus = "pending" | "delivering" | "delivered" | "cancelled";
 
 export type Order = {
   id: number;
   agent_id: number;
-  driver_id: number | null;
+  user_id: number | null;
   route_order: number | null;
   status: OrderStatus;
   total: number;

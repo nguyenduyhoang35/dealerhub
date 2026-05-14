@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
   for (const a of assignments) {
     const update: any = {
-      driver_id: a.driver_id ? Number(a.driver_id) : null,
+      user_id: a.user_id ? Number(a.user_id) : null,
       route_order:
         a.route_order === null || a.route_order === undefined ? null : Number(a.route_order),
     };

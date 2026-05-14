@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   const user = await currentUser();
   const { searchParams } = new URL(req.url);
   const date = searchParams.get("date");
-  const driverId = searchParams.get("driver_id");
+  const driverId = searchParams.get("user_id");
   const mine = searchParams.get("mine");
   const unassigned = searchParams.get("unassigned");
 
@@ -15,16 +15,16 @@ export async function GET(req: NextRequest) {
     .select(
       `*,
        agent:agents(name, phone, address),
-       driver:drivers(name, vehicle_plate),
+       driver:users(name, vehicle_plate),
        items:order_items(*, product:products(name, unit))`
     );
 
   if (mine === "1" && user?.role === "driver") {
-    q = q.eq("driver_id", user.id);
+    q = q.eq("user_id", user.id);
   } else if (driverId) {
-    q = q.eq("driver_id", Number(driverId));
+    q = q.eq("user_id", Number(driverId));
   } else if (unassigned === "1") {
-    q = q.is("driver_id", null);
+    q = q.is("user_id", null);
   }
 
   if (date) q = q.eq("delivery_date", date);
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
 type Item = { product_id: number; quantity: number; price: number };
 
 export async function POST(req: NextRequest) {
-  const { agent_id, delivery_date, note, items, paid, driver_id } = await req.json();
+  const { agent_id, delivery_date, note, items, paid, user_id } = await req.json();
   if (!agent_id) return NextResponse.json({ error: "Thiếu đại lý" }, { status: 400 });
   if (!Array.isArray(items) || items.length === 0)
     return NextResponse.json({ error: "Đơn rỗng" }, { status: 400 });
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     .from("orders")
     .insert({
       agent_id: Number(agent_id),
-      driver_id: driver_id ? Number(driver_id) : null,
+      user_id: user_id ? Number(user_id) : null,
       delivery_date: delivery_date || null,
       note: note || null,
       total,

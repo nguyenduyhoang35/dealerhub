@@ -1,0 +1,27 @@
+{
+  "name": "DealerHub - Quản lý giao hàng đại lý",
+  "short_name": "DealerHub",
+  "description": "Hệ thống quản lý đơn hàng sỉ, giao hàng và công nợ cho đại lý",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-icon.svg",
+      "sizes": "180x180",
+      "type": "image/svg+xml",
+      "purpose": "apple touch icon"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "vi",
+  "dir": "ltr"
+}

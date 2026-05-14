@@ -1,0 +1,11 @@
+# robots.txt for DealerHub
+User-agent: *
+Allow: /
+
+# Disallow admin and API routes
+Disallow: /admin
+Disallow: /api
+Disallow: /login
+
+# Sitemap
+Sitemap: https://dealerhub.vn/sitemap.xml

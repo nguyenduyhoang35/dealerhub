@@ -13,10 +13,10 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   if (user?.role === "driver") {
     const { data: o } = await db()
       .from("orders")
-      .select("driver_id")
+      .select("user_id")
       .eq("id", id)
       .maybeSingle();
-    if (!o || Number(o.driver_id) !== Number(user.id))
+    if (!o || Number(o.user_id) !== Number(user.id))
       return NextResponse.json({ error: "Không có quyền" }, { status: 403 });
   }
 
@@ -32,8 +32,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   if (body.collected_amount !== undefined)
     update.collected_amount = Number(body.collected_amount) || 0;
   if (body.delivery_date !== undefined) update.delivery_date = body.delivery_date || null;
-  if (body.driver_id !== undefined && user?.role === "admin")
-    update.driver_id = body.driver_id ? Number(body.driver_id) : null;
+  if (body.user_id !== undefined && user?.role === "admin")
+    update.user_id = body.user_id ? Number(body.user_id) : null;
   if (body.route_order !== undefined && user?.role === "admin")
     update.route_order = body.route_order === null ? null : Number(body.route_order);
   if (body.note !== undefined) update.note = body.note || null;

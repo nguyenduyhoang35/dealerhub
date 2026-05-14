@@ -14,20 +14,20 @@ export async function GET(req: NextRequest) {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
   const status = searchParams.get("status");
-  const driverId = searchParams.get("driver_id");
+  const driverId = searchParams.get("user_id");
 
   let q = db()
     .from("orders")
     .select(
       `id, status, total, paid, collected_amount, delivery_date, delivered_at, note, created_at,
        agent:agents(name, phone, address),
-       driver:drivers(name, vehicle_plate),
+       driver:users(name, vehicle_plate),
        items:order_items(quantity, price, product:products(name, unit))`
     );
   if (from) q = q.gte("delivery_date", from);
   if (to) q = q.lte("delivery_date", to);
   if (status) q = q.eq("status", status);
-  if (driverId) q = q.eq("driver_id", Number(driverId));
+  if (driverId) q = q.eq("user_id", Number(driverId));
   q = q.order("delivery_date", { ascending: false }).order("id");
 
   const { data, error } = await q;

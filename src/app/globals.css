@@ -11,3 +11,22 @@ html, body {
   padding: 0;
   background: #f5f6fa;
 }
+
+button {
+  background: transparent;
+}
+
+@keyframes scroll-down {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.animate-scroll-down {
+  animation: scroll-down 1.5s ease-in-out infinite;
+}
