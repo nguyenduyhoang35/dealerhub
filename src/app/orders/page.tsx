@@ -17,7 +17,12 @@ import {
   Statistic,
   App,
   Descriptions,
+  Empty,
+  Grid,
+  Spin,
 } from "antd";
+
+const { useBreakpoint } = Grid;
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -26,6 +31,7 @@ import {
 } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
 import { fmtVND, STATUS_LABEL, STATUS_TAG, vndInputProps } from "@/lib/format";
+import FormDrawer from "../FormDrawer";
 
 type Agent = { id: number; name: string };
 type Product = { id: number; name: string; unit: string; price: number };
@@ -54,6 +60,8 @@ type Order = {
 
 export default function OrdersPage() {
   const { message } = App.useApp();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
   const [agents, setAgents] = useState<Agent[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -163,12 +171,14 @@ export default function OrdersPage() {
   return (
     <>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <Typography.Title level={3} className="!m-0">Đơn hàng</Typography.Title>
-        <Space>
+        <Typography.Title level={3} className="!m-0 hidden sm:block">
+          Đơn hàng
+        </Typography.Title>
+        <Space wrap className="!ml-auto">
           <Select
             value={filter}
             onChange={setFilter}
-            style={{ width: 180 }}
+            className="!w-[140px] sm:!w-[180px]"
             options={[
               { value: "all", label: "Tất cả trạng thái" },
               { value: "pending", label: "Chờ giao" },
@@ -181,20 +191,122 @@ export default function OrdersPage() {
             icon={<DownloadOutlined />}
             href={`/api/export/orders${filter !== "all" ? `?status=${filter}` : ""}`}
           >
-            Xuất Excel
+            <span className="hidden sm:inline">Xuất Excel</span>
+            <span className="sm:hidden">Xuất</span>
           </Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            Tạo đơn
+            <span className="hidden sm:inline">Tạo đơn</span>
+            <span className="sm:hidden">Tạo</span>
           </Button>
         </Space>
       </div>
 
+      {isMobile ? (
+        <div className="flex flex-col gap-2">
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <Spin />
+            </div>
+          ) : filtered.length === 0 ? (
+            <Card>
+              <Empty description="Không có đơn nào" />
+            </Card>
+          ) : (
+            filtered.map((o) => {
+              const debt = o.total - o.paid;
+              return (
+                <Card
+                  key={o.id}
+                  styles={{ body: { padding: 12 } }}
+                  onClick={() => setDetail(o)}
+                  hoverable
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-400">#{o.id}</span>
+                        <span className="font-semibold truncate">{o.agent_name}</span>
+                      </div>
+                      <div className="text-xs text-slate-500 mt-0.5 truncate">
+                        {o.driver_name ? `🚚 ${o.driver_name}` : "Chưa gán xe"}
+                        {o.delivery_date && ` · ${o.delivery_date}`}
+                      </div>
+                    </div>
+                    <Tag color={STATUS_TAG[o.status] as any} className="!m-0 whitespace-nowrap">
+                      {STATUS_LABEL[o.status]}
+                    </Tag>
+                  </div>
+
+                  <div
+                    className="grid grid-cols-3 gap-2 text-xs"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div>
+                      <div className="text-slate-500">Tổng</div>
+                      <div className="font-semibold">{fmtVND(o.total)}</div>
+                    </div>
+                    <div>
+                      <div className="text-slate-500">Đã trả</div>
+                      <InputNumber
+                        size="small"
+                        className="!w-full"
+                        value={o.paid}
+                        min={0}
+                        {...vndInputProps}
+                        onBlur={(e) => {
+                          const v = Number(e.target.value.replace(/\D/g, "")) || 0;
+                          if (v !== o.paid) updatePaid(o.id, v);
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <div className="text-slate-500">Còn nợ</div>
+                      <div
+                        className="font-semibold"
+                        style={{ color: debt > 0 ? "#dc2626" : "#16a34a" }}
+                      >
+                        {fmtVND(debt)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-slate-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Select
+                      value={o.status}
+                      size="small"
+                      className="!flex-1"
+                      onChange={(v) => updateStatus(o.id, v)}
+                      options={Object.entries(STATUS_LABEL).map(([k, v]) => ({
+                        value: k,
+                        label: <Tag color={STATUS_TAG[k] as any}>{v}</Tag>,
+                      }))}
+                    />
+                    <Popconfirm
+                      title="Xóa đơn này?"
+                      onConfirm={() => del(o.id)}
+                      okText="Xóa"
+                      cancelText="Hủy"
+                      okButtonProps={{ danger: true }}
+                    >
+                      <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                  </div>
+                </Card>
+              );
+            })
+          )}
+        </div>
+      ) : (
       <Card styles={{ body: { padding: 0 } }}>
         <Table
           dataSource={filtered}
           loading={loading}
           rowKey="id"
           pagination={{ pageSize: 15 }}
+          scroll={{ x: 1200 }}
           columns={[
             { title: "#", dataIndex: "id", width: 60, render: (v) => `#${v}` },
             { title: "Đại lý", dataIndex: "agent_name", width: 200, ellipsis: true, render: (v) => <b>{v}</b> },
@@ -294,16 +406,15 @@ export default function OrdersPage() {
           ]}
         />
       </Card>
+      )}
 
-      <Modal
+      <FormDrawer
         title="Tạo đơn hàng"
         open={open}
-        onCancel={() => setOpen(false)}
+        onClose={() => setOpen(false)}
         onOk={submit}
         okText="Tạo đơn"
-        cancelText="Hủy"
         width={760}
-        destroyOnHidden
       >
         <Form form={form} layout="vertical" requiredMark={false}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -350,7 +461,10 @@ export default function OrdersPage() {
             {(fields, { add, remove }) => (
               <>
                 {fields.map((f) => (
-                  <Space.Compact key={f.key} className="!flex !mb-2">
+                  <div
+                    key={f.key}
+                    className="mb-2 flex flex-col sm:flex-row gap-2 sm:gap-0 sm:[&_.ant-input-number]:rounded-none sm:[&_.ant-select-selector]:rounded-r-none"
+                  >
                     <Form.Item
                       {...f}
                       name={[f.name, "product_id"]}
@@ -361,7 +475,7 @@ export default function OrdersPage() {
                         placeholder="Sản phẩm"
                         showSearch
                         optionFilterProp="label"
-                        style={{ flex: 2 }}
+                        className="!flex-[2] sm:!min-w-0"
                         options={products.map((p) => ({
                           value: p.id,
                           label: `${p.name} (${p.unit}) - ${fmtVND(p.price)}`,
@@ -376,19 +490,37 @@ export default function OrdersPage() {
                         }}
                       />
                     </Form.Item>
-                    <Form.Item {...f} name={[f.name, "quantity"]} noStyle rules={[{ required: true }]}>
-                      <InputNumber placeholder="SL" min={1} style={{ width: 90 }} />
-                    </Form.Item>
-                    <Form.Item {...f} name={[f.name, "price"]} noStyle rules={[{ required: true }]}>
-                      <InputNumber
-                        placeholder="Giá"
-                        min={0}
-                        style={{ width: 140 }}
-                        {...vndInputProps}
-                      />
-                    </Form.Item>
-                    <Button danger onClick={() => remove(f.name)}>×</Button>
-                  </Space.Compact>
+                    <div className="flex gap-0">
+                      <Form.Item
+                        {...f}
+                        name={[f.name, "quantity"]}
+                        noStyle
+                        rules={[{ required: true }]}
+                      >
+                        <InputNumber
+                          placeholder="SL"
+                          min={1}
+                          className="!w-[80px] sm:!w-[90px]"
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        {...f}
+                        name={[f.name, "price"]}
+                        noStyle
+                        rules={[{ required: true }]}
+                      >
+                        <InputNumber
+                          placeholder="Giá"
+                          min={0}
+                          className="!flex-1 sm:!w-[140px]"
+                          {...vndInputProps}
+                        />
+                      </Form.Item>
+                      <Button danger onClick={() => remove(f.name)}>
+                        ×
+                      </Button>
+                    </div>
+                  </div>
                 ))}
                 <Button
                   type="dashed"
@@ -409,18 +541,22 @@ export default function OrdersPage() {
             <Statistic title="Tổng tiền" value={totalWatch} suffix="₫" />
           </div>
         </Form>
-      </Modal>
+      </FormDrawer>
 
       <Modal
         title={detail ? `Đơn #${detail.id} — ${detail.agent_name}` : ""}
         open={!!detail}
         onCancel={() => setDetail(null)}
         footer={null}
-        width={680}
+        width="min(680px, calc(100vw - 24px))"
       >
         {detail && (
           <>
-            <Descriptions size="small" column={2} bordered>
+            <Descriptions
+              size="small"
+              column={{ xs: 1, sm: 2 }}
+              bordered
+            >
               <Descriptions.Item label="Tài xế">
                 {detail.driver_name || "—"}
               </Descriptions.Item>
@@ -440,6 +576,8 @@ export default function OrdersPage() {
             <Table
               className="mt-4"
               pagination={false}
+              size="small"
+              scroll={{ x: 480 }}
               dataSource={detail.items}
               rowKey={(r, i) => `${r.product_id}_${i}`}
               columns={[

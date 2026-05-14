@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const id = Number(params.id);
   const { name, phone, pin, vehicle_plate, role, active } = await req.json();
   if (!name?.trim() || !phone?.trim())
@@ -25,7 +26,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const id = Number(params.id);
   const { data: user } = await db().from("drivers").select("role").eq("id", id).maybeSingle();
   if (user?.role === "admin") {

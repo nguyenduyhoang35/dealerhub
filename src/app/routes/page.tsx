@@ -118,8 +118,10 @@ export default function RoutesPage() {
   return (
     <>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <Typography.Title level={3} className="!m-0">Lên tuyến giao hàng</Typography.Title>
-        <Space>
+        <Typography.Title level={3} className="!m-0 hidden sm:block">
+          Lên tuyến giao hàng
+        </Typography.Title>
+        <Space wrap className="!ml-auto">
           <DatePicker
             value={date}
             onChange={(d) => d && setDate(d)}
@@ -132,7 +134,8 @@ export default function RoutesPage() {
             icon={<PrinterOutlined />}
             href={`/api/export/delivery-slip?date=${dateStr}`}
           >
-            In phiếu giao
+            <span className="hidden sm:inline">In phiếu giao</span>
+            <span className="sm:hidden">In</span>
           </Button>
         </Space>
       </div>
@@ -159,6 +162,7 @@ export default function RoutesPage() {
             rowKey="id"
             pagination={false}
             size="small"
+            scroll={{ x: 900 }}
             columns={[
               { title: "#", dataIndex: "id", width: 60, render: (v) => `#${v}` },
               { title: "Đại lý", dataIndex: "agent_name", render: (v) => <b>{v}</b> },

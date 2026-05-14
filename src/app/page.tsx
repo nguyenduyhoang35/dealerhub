@@ -76,9 +76,11 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col gap-3">
-      <Typography.Title level={3} className="!m-0">Dashboard</Typography.Title>
+      <Typography.Title level={3} className="!m-0 hidden sm:block">
+        Dashboard
+      </Typography.Title>
 
-      <Row gutter={[12, 12]}>
+      <Row gutter={[8, 8]}>
         <Col xs={12} md={6}>
           <StatCard
             label="Tổng đơn"
@@ -123,6 +125,7 @@ export default function Dashboard() {
             <CarOutlined /> Hôm nay theo xe ({stats.today})
           </span>
         }
+        styles={{ header: { padding: "8px 12px" }, body: { padding: 12 } }}
       >
         {stats.todayByDriver.length === 0 ? (
           <Empty
@@ -138,6 +141,7 @@ export default function Dashboard() {
             rowKey="id"
             pagination={false}
             size="middle"
+            scroll={{ x: 900 }}
             columns={[
               { title: "Tài xế", dataIndex: "name", render: (v) => <b>{v}</b> },
               {
@@ -179,11 +183,14 @@ export default function Dashboard() {
         )}
       </Card>
 
-      <Card title="Trạng thái đơn">
-        <Row gutter={[12, 12]}>
+      <Card
+        title="Trạng thái đơn"
+        styles={{ header: { padding: "8px 12px" }, body: { padding: 12 } }}
+      >
+        <Row gutter={[8, 8]}>
           {(["pending", "delivering", "delivered", "cancelled"] as const).map((k) => (
             <Col xs={12} md={6} key={k}>
-              <Card size="small">
+              <Card size="small" styles={{ body: { padding: 10 } }}>
                 <Statistic
                   title={
                     <Tag color={STATUS_TAG[k] as any} className="!m-0">
@@ -198,7 +205,10 @@ export default function Dashboard() {
         </Row>
       </Card>
 
-      <Card title="Công nợ theo đại lý">
+      <Card
+        title="Công nợ theo đại lý"
+        styles={{ header: { padding: "8px 12px" }, body: { padding: 12 } }}
+      >
         {stats.byAgent.length === 0 ? (
           <Empty
             description={
@@ -212,6 +222,7 @@ export default function Dashboard() {
             dataSource={stats.byAgent}
             rowKey="id"
             pagination={{ pageSize: 10 }}
+            scroll={{ x: 720 }}
             columns={[
               { title: "Đại lý", dataIndex: "name", render: (v) => <b>{v}</b> },
               { title: "Số đơn", dataIndex: "order_count", align: "right", width: 100 },
@@ -243,7 +254,10 @@ export default function Dashboard() {
         )}
       </Card>
 
-      <Card title="Doanh số 6 tháng gần nhất">
+      <Card
+        title="Doanh số 6 tháng gần nhất"
+        styles={{ header: { padding: "8px 12px" }, body: { padding: 12 } }}
+      >
         {stats.byMonth.length === 0 ? (
           <Empty />
         ) : (
@@ -283,11 +297,11 @@ function StatCard({
   bg: string;
 }) {
   return (
-    <Card styles={{ body: { padding: 16 } }}>
-      <div className="flex items-center gap-3">
+    <Card styles={{ body: { padding: 12 } }}>
+      <div className="flex items-center gap-2.5">
         <div
           className="flex items-center justify-center rounded-lg shrink-0"
-          style={{ width: 48, height: 48, background: bg, color, fontSize: 22 }}
+          style={{ width: 40, height: 40, background: bg, color, fontSize: 20 }}
         >
           {icon}
         </div>

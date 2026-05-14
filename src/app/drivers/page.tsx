@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import {
   Table,
   Button,
-  Modal,
   Form,
   Input,
   Select,
@@ -14,8 +13,20 @@ import {
   Popconfirm,
   Card,
   App,
+  Empty,
+  Grid,
+  Spin,
 } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  PhoneOutlined,
+  CarOutlined,
+} from "@ant-design/icons";
+import FormDrawer from "../FormDrawer";
+
+const { useBreakpoint } = Grid;
 
 type Driver = {
   id: number;
@@ -28,6 +39,8 @@ type Driver = {
 
 export default function DriversPage() {
   const { message } = App.useApp();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -87,19 +100,93 @@ export default function DriversPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <Typography.Title level={3} className="!m-0">Tài xế & Tài khoản</Typography.Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-          Thêm tài khoản
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <Typography.Title level={3} className="!m-0 hidden sm:block">
+          Tài xế & Tài khoản
+        </Typography.Title>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={openCreate}
+          className="!ml-auto"
+        >
+          <span className="hidden sm:inline">Thêm tài khoản</span>
+          <span className="sm:hidden">Thêm</span>
         </Button>
       </div>
 
+      {isMobile ? (
+        <div className="flex flex-col gap-2">
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <Spin />
+            </div>
+          ) : drivers.length === 0 ? (
+            <Card>
+              <Empty description="Chưa có tài khoản" />
+            </Card>
+          ) : (
+            drivers.map((d) => (
+              <Card
+                key={d.id}
+                styles={{ body: { padding: 12 } }}
+                onClick={() => openEdit(d)}
+                hoverable
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold truncate">{d.name}</span>
+                      {d.role === "admin" ? (
+                        <Tag color="purple" className="!m-0">Quản lý</Tag>
+                      ) : (
+                        <Tag color="cyan" className="!m-0">Tài xế</Tag>
+                      )}
+                      {!d.active && <Tag className="!m-0">Tắt</Tag>}
+                    </div>
+                    {d.phone && (
+                      <a
+                        href={`tel:${d.phone}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs text-blue-600 inline-flex items-center gap-1 mt-0.5"
+                      >
+                        <PhoneOutlined /> {d.phone}
+                      </a>
+                    )}
+                    {d.vehicle_plate && (
+                      <div className="text-xs text-slate-500 mt-0.5">
+                        <CarOutlined /> {d.vehicle_plate}
+                      </div>
+                    )}
+                  </div>
+                  <Popconfirm
+                    title="Xóa tài khoản?"
+                    onConfirm={() => del(d.id)}
+                    okText="Xóa"
+                    cancelText="Hủy"
+                    okButtonProps={{ danger: true }}
+                  >
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </Popconfirm>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      ) : (
       <Card styles={{ body: { padding: 0 } }}>
         <Table
           dataSource={drivers}
           loading={loading}
           rowKey="id"
           pagination={false}
+          scroll={{ x: 880 }}
           columns={[
             { title: "Tên", dataIndex: "name", width: 200, ellipsis: true, render: (v) => <b>{v}</b> },
             { title: "SĐT", dataIndex: "phone", width: 140 },
@@ -148,15 +235,14 @@ export default function DriversPage() {
           ]}
         />
       </Card>
+      )}
 
-      <Modal
+      <FormDrawer
         title={editing ? `Sửa: ${editing.name}` : "Thêm tài khoản"}
         open={open}
-        onCancel={() => setOpen(false)}
+        onClose={() => setOpen(false)}
         onOk={submit}
         okText={editing ? "Cập nhật" : "Thêm"}
-        cancelText="Hủy"
-        destroyOnHidden
       >
         <Form form={form} layout="vertical" requiredMark={false}>
           <Form.Item label="Tên" name="name" rules={[{ required: true }]}>
@@ -187,7 +273,7 @@ export default function DriversPage() {
             <Switch />
           </Form.Item>
         </Form>
-      </Modal>
+      </FormDrawer>
     </>
   );
 }

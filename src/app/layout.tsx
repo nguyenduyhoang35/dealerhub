@@ -1,7 +1,6 @@
 import "./globals.css";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { currentUser } from "@/lib/auth";
-import NavBar from "./NavBar";
 import AntdProvider from "./AntdProvider";
 import AppShell from "./AppShell";
 

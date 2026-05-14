@@ -4,7 +4,8 @@ import { currentUser } from "@/lib/auth";
 
 const ALLOWED = ["pending", "delivering", "delivered", "cancelled"];
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const id = Number(params.id);
   const body = await req.json();
   const user = await currentUser();
@@ -44,7 +45,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const user = await currentUser();
   if (user?.role !== "admin")
     return NextResponse.json({ error: "Không có quyền" }, { status: 403 });

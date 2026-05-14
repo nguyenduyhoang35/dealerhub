@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import {
   Table,
   Button,
-  Modal,
   Form,
   Input,
   Space,
@@ -11,8 +10,21 @@ import {
   Popconfirm,
   Card,
   App,
+  Empty,
+  Grid,
+  Spin,
 } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined, DownloadOutlined } from "@ant-design/icons";
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  PhoneOutlined,
+  EnvironmentOutlined,
+} from "@ant-design/icons";
+import FormDrawer from "../FormDrawer";
+
+const { useBreakpoint } = Grid;
 
 type Agent = {
   id: number;
@@ -24,6 +36,8 @@ type Agent = {
 
 export default function AgentsPage() {
   const { message } = App.useApp();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -78,65 +92,132 @@ export default function AgentsPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <Typography.Title level={3} className="!m-0">Đại lý</Typography.Title>
-        <Space>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <Typography.Title level={3} className="!m-0 hidden sm:block">
+          Đại lý
+        </Typography.Title>
+        <Space wrap className="!ml-auto">
           <Button icon={<DownloadOutlined />} href="/api/export/agents">
-            Xuất công nợ
+            <span className="hidden sm:inline">Xuất công nợ</span>
+            <span className="sm:hidden">Xuất</span>
           </Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            Thêm đại lý
+            <span className="hidden sm:inline">Thêm đại lý</span>
+            <span className="sm:hidden">Thêm</span>
           </Button>
         </Space>
       </div>
 
-      <Card styles={{ body: { padding: 0 } }}>
-        <Table
-          dataSource={agents}
-          loading={loading}
-          rowKey="id"
-          pagination={{ pageSize: 20 }}
-          columns={[
-            { title: "Tên", dataIndex: "name", width: 240, ellipsis: true, render: (v) => <b>{v}</b> },
-            { title: "SĐT", dataIndex: "phone", width: 140, render: (v) => v || "—" },
-            { title: "Địa chỉ", dataIndex: "address", ellipsis: true, render: (v) => v || "—", responsive: ["md"] },
-            { title: "Ghi chú", dataIndex: "note", ellipsis: true, render: (v) => <span className="text-slate-500">{v || "—"}</span>, responsive: ["lg"] },
-            {
-              title: "",
-              width: 160,
-              align: "center",
-              render: (_, r) => (
-                <Space size={4}>
-                  <Button type="link" size="small" icon={<EditOutlined />} onClick={() => openEdit(r)}>
-                    Sửa
-                  </Button>
+      {isMobile ? (
+        <div className="flex flex-col gap-2">
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <Spin />
+            </div>
+          ) : agents.length === 0 ? (
+            <Card>
+              <Empty description="Chưa có đại lý" />
+            </Card>
+          ) : (
+            agents.map((a) => (
+              <Card
+                key={a.id}
+                styles={{ body: { padding: 12 } }}
+                onClick={() => openEdit(a)}
+                hoverable
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold truncate">{a.name}</div>
+                    {a.phone && (
+                      <a
+                        href={`tel:${a.phone}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs text-blue-600 inline-flex items-center gap-1 mt-0.5"
+                      >
+                        <PhoneOutlined /> {a.phone}
+                      </a>
+                    )}
+                    {a.address && (
+                      <div className="text-xs text-slate-500 truncate mt-0.5">
+                        <EnvironmentOutlined /> {a.address}
+                      </div>
+                    )}
+                    {a.note && (
+                      <div className="text-xs text-slate-400 truncate mt-0.5">
+                        {a.note}
+                      </div>
+                    )}
+                  </div>
                   <Popconfirm
                     title="Xóa đại lý này?"
                     description="Các đơn liên quan sẽ bị xóa theo"
-                    onConfirm={() => del(r.id)}
+                    onConfirm={() => del(a.id)}
                     okText="Xóa"
                     cancelText="Hủy"
                     okButtonProps={{ danger: true }}
                   >
-                    <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-                      Xóa
-                    </Button>
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={(e) => e.stopPropagation()}
+                    />
                   </Popconfirm>
-                </Space>
-              ),
-            },
-          ]}
-        />
-      </Card>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      ) : (
+        <Card styles={{ body: { padding: 0 } }}>
+          <Table
+            dataSource={agents}
+            loading={loading}
+            rowKey="id"
+            pagination={{ pageSize: 20 }}
+            scroll={{ x: 720 }}
+            columns={[
+              { title: "Tên", dataIndex: "name", width: 240, ellipsis: true, render: (v) => <b>{v}</b> },
+              { title: "SĐT", dataIndex: "phone", width: 140, render: (v) => v || "—" },
+              { title: "Địa chỉ", dataIndex: "address", ellipsis: true, render: (v) => v || "—", responsive: ["md"] },
+              { title: "Ghi chú", dataIndex: "note", ellipsis: true, render: (v) => <span className="text-slate-500">{v || "—"}</span>, responsive: ["lg"] },
+              {
+                title: "",
+                width: 160,
+                align: "center",
+                render: (_, r) => (
+                  <Space size={4}>
+                    <Button type="link" size="small" icon={<EditOutlined />} onClick={() => openEdit(r)}>
+                      Sửa
+                    </Button>
+                    <Popconfirm
+                      title="Xóa đại lý này?"
+                      description="Các đơn liên quan sẽ bị xóa theo"
+                      onConfirm={() => del(r.id)}
+                      okText="Xóa"
+                      cancelText="Hủy"
+                      okButtonProps={{ danger: true }}
+                    >
+                      <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+                        Xóa
+                      </Button>
+                    </Popconfirm>
+                  </Space>
+                ),
+              },
+            ]}
+          />
+        </Card>
+      )}
 
-      <Modal
+      <FormDrawer
         title={editing ? `Sửa: ${editing.name}` : "Thêm đại lý"}
         open={open}
-        onCancel={() => setOpen(false)}
+        onClose={() => setOpen(false)}
         onOk={submit}
         okText={editing ? "Cập nhật" : "Thêm"}
-        cancelText="Hủy"
-        destroyOnHidden
       >
         <Form form={form} layout="vertical" requiredMark={false}>
           <Form.Item
@@ -156,7 +237,7 @@ export default function AgentsPage() {
             <Input.TextArea rows={2} />
           </Form.Item>
         </Form>
-      </Modal>
+      </FormDrawer>
     </>
   );
 }

@@ -112,15 +112,16 @@ export default function MyRoutePage() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <Typography.Title level={3} className="!m-0">
+        <Typography.Title level={3} className="!m-0 hidden sm:block">
           <CarOutlined /> Tuyến của tôi
         </Typography.Title>
-        <Space>
+        <Space wrap className="!ml-auto">
           <DatePicker
             value={date}
             onChange={(d) => d && setDate(d)}
             allowClear={false}
             format="YYYY-MM-DD"
+            className="!w-[150px] sm:!w-auto"
           />
           <Button onClick={() => setDate(dayjs())}>Hôm nay</Button>
         </Space>

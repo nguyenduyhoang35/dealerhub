@@ -12,7 +12,7 @@ export async function login(phone: string, pin: string): Promise<Driver | null> 
     .eq("active", true)
     .maybeSingle();
   if (!data) return null;
-  cookies().set(COOKIE_NAME, String(data.id), {
+  (await cookies()).set(COOKIE_NAME, String(data.id), {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
@@ -21,12 +21,12 @@ export async function login(phone: string, pin: string): Promise<Driver | null> 
   return data as Driver;
 }
 
-export function logout() {
-  cookies().delete(COOKIE_NAME);
+export async function logout() {
+  (await cookies()).delete(COOKIE_NAME);
 }
 
 export async function currentUser(): Promise<Driver | null> {
-  const id = cookies().get(COOKIE_NAME)?.value;
+  const id = (await cookies()).get(COOKIE_NAME)?.value;
   if (!id) return null;
   const { data } = await db()
     .from("drivers")
