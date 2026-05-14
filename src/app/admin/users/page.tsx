@@ -58,7 +58,7 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export default function UsersPage() {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
 
@@ -150,13 +150,24 @@ export default function UsersPage() {
     }
   };
 
-  const toggleActive = async (id: number, active: boolean) => {
-    try {
-      await updateUser.mutateAsync({ id, active });
-      message.success(active ? "Đã kích hoạt" : "Đã tắt");
-    } catch (err: any) {
-      message.error(err.message || "Lỗi cập nhật");
-    }
+  const toggleActive = (id: number, active: boolean, name: string) => {
+    modal.confirm({
+      title: active ? "Kích hoạt tài khoản?" : "Tắt tài khoản?",
+      content: active
+        ? `Bạn có chắc muốn kích hoạt tài khoản "${name}"?`
+        : `Bạn có chắc muốn tắt tài khoản "${name}"? Người dùng sẽ không thể đăng nhập.`,
+      okText: active ? "Kích hoạt" : "Tắt",
+      cancelText: "Hủy",
+      okButtonProps: { danger: !active },
+      onOk: async () => {
+        try {
+          await updateUser.mutateAsync({ id, active });
+          message.success(active ? "Đã kích hoạt" : "Đã tắt");
+        } catch (err: any) {
+          message.error(err.message || "Lỗi cập nhật");
+        }
+      },
+    });
   };
 
   return (
@@ -285,7 +296,7 @@ export default function UsersPage() {
                   <Switch
                     size="small"
                     checked={!!v}
-                    onChange={(checked) => toggleActive(r.id, checked)}
+                    onChange={(checked) => toggleActive(r.id, checked, r.name)}
                   />
                 ),
               },

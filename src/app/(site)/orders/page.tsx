@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Card, Table, Tag, Typography, Empty, Spin, Button } from "antd";
 import {
@@ -12,8 +12,17 @@ import { fmtVND, STATUS_LABEL, STATUS_TAG } from "@/lib/format";
 import { useOrders } from "@/hooks";
 import dayjs from "dayjs";
 
+const STATUS_OPTIONS = [
+  { label: "Tất cả", value: "all" },
+  { label: "Chờ xử lý", value: "pending" },
+  { label: "Đang giao", value: "delivering" },
+  { label: "Đã giao", value: "delivered" },
+  { label: "Đã hủy", value: "cancelled" },
+];
+
 export default function OrdersPage() {
-  const { data, isLoading, isError } = useOrders();
+  const [statusFilter, setStatusFilter] = useState("all");
+  const { data, isLoading, isError } = useOrders({ status: statusFilter !== "all" ? statusFilter : undefined });
 
   const orders = data?.data || [];
 
@@ -92,6 +101,20 @@ export default function OrdersPage() {
         </div>
       </div>
 
+      {/* Status Filter */}
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+        {STATUS_OPTIONS.map((opt) => (
+          <Button
+            key={opt.value}
+            type={statusFilter === opt.value ? "primary" : "default"}
+            size="small"
+            onClick={() => setStatusFilter(opt.value)}
+          >
+            {opt.label}
+          </Button>
+        ))}
+      </div>
+
       {orders.length === 0 ? (
         <Card className="text-center py-12">
           <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -132,14 +155,14 @@ export default function OrdersPage() {
               {
                 title: "Ngày đặt",
                 dataIndex: "created_at",
-                width: 120,
-                render: (v) => dayjs(v).format("DD/MM/YYYY"),
+                width: 140,
+                render: (v) => dayjs(v).format("DD/MM/YYYY HH:mm"),
               },
               {
                 title: "Ngày giao",
                 dataIndex: "delivery_date",
-                width: 120,
-                render: (v) => (v ? dayjs(v).format("DD/MM/YYYY") : "—"),
+                width: 140,
+                render: (v) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—"),
               },
               {
                 title: "Tổng tiền",

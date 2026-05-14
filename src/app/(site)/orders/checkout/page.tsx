@@ -111,7 +111,7 @@ export default function CheckoutPage() {
                 price: c.price,
               })),
               note: values.note || "",
-              delivery_date: values.delivery_date?.format("YYYY-MM-DD") || null,
+              delivery_date: values.delivery_date?.format("YYYY-MM-DD HH:mm") || null,
             }),
           });
 
@@ -121,6 +121,7 @@ export default function CheckoutPage() {
           }
 
           sessionStorage.removeItem("dealerhub_cart");
+          localStorage.removeItem("dealerhub_cart");
 
           message.success("Đặt hàng thành công! Nhân viên sẽ liên hệ xác nhận.");
           router.push("/orders");
@@ -295,9 +296,10 @@ export default function CheckoutPage() {
             }
           >
             <DatePicker
+              showTime={{ format: "HH:mm" }}
               className="w-full"
-              format="DD/MM/YYYY"
-              placeholder="Chọn ngày (tùy chọn)"
+              format="DD/MM/YYYY HH:mm"
+              placeholder="Chọn ngày giờ (tùy chọn)"
               disabledDate={(current) =>
                 current && current < dayjs().startOf("day")
               }

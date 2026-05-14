@@ -244,7 +244,20 @@ export default function MyRoutePage() {
                         Đang giao
                       </Button>
                     )}
-                    <Button danger size="large" onClick={() => updateStatus(o.id, "cancelled")}>
+                    <Button
+                      danger
+                      size="large"
+                      onClick={() => {
+                        modal.confirm({
+                          title: "Hủy đơn hàng?",
+                          content: `Bạn có chắc muốn hủy đơn hàng #${o.id} của ${o.agent_name}?`,
+                          okText: "Hủy đơn",
+                          cancelText: "Không",
+                          okButtonProps: { danger: true },
+                          onOk: () => updateStatus(o.id, "cancelled"),
+                        });
+                      }}
+                    >
                       Hủy
                     </Button>
                   </Space>

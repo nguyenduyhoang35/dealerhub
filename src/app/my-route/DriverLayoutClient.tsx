@@ -1,5 +1,5 @@
 "use client";
-import { Avatar, Dropdown } from "antd";
+import { Avatar, Dropdown, Modal } from "antd";
 import {
   UserOutlined,
   LogoutOutlined,
@@ -15,9 +15,18 @@ export default function DriverLayoutClient({
   user: User;
   children: React.ReactNode;
 }) {
-  const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/login";
+  const logout = () => {
+    Modal.confirm({
+      title: "Đăng xuất?",
+      content: "Bạn có chắc muốn đăng xuất khỏi tài khoản?",
+      okText: "Đăng xuất",
+      cancelText: "Hủy",
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        await fetch("/api/auth/logout", { method: "POST" });
+        window.location.href = "/login";
+      },
+    });
   };
 
   return (

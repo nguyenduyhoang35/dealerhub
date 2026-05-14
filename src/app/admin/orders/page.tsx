@@ -448,7 +448,7 @@ export default function OrdersPage() {
                       </div>
                       <div className="text-xs text-slate-500 mt-0.5 truncate">
                         {o.driver_name ? `🚚 ${o.driver_name}` : "Chưa gán xe"}
-                        {o.delivery_date && ` · ${o.delivery_date}`}
+                        {o.delivery_date && ` · ${dayjs(o.delivery_date).format("DD/MM HH:mm")}`}
                       </div>
                     </div>
                     <Tag color={STATUS_TAG[o.status] as any} className="!m-0 whitespace-nowrap">
@@ -556,8 +556,8 @@ export default function OrdersPage() {
             {
               title: "Ngày giao",
               dataIndex: "delivery_date",
-              width: 120,
-              render: (v) => v || "—",
+              width: 140,
+              render: (v) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—"),
             },
             {
               title: "Tổng",
@@ -957,9 +957,11 @@ export default function OrdersPage() {
                 {detail.driver_name || "—"}
               </Descriptions.Item>
               <Descriptions.Item label="Ngày giao">
-                {detail.delivery_date || "—"}
+                {detail.delivery_date ? dayjs(detail.delivery_date).format("DD/MM/YYYY HH:mm") : "—"}
               </Descriptions.Item>
-              <Descriptions.Item label="Tạo lúc">{detail.created_at}</Descriptions.Item>
+              <Descriptions.Item label="Tạo lúc">
+                {dayjs(detail.created_at).format("DD/MM/YYYY HH:mm")}
+              </Descriptions.Item>
               <Descriptions.Item label="Trạng thái">
                 <Tag color={STATUS_TAG[detail.status] as any}>{STATUS_LABEL[detail.status]}</Tag>
               </Descriptions.Item>

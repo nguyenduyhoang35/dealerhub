@@ -1,5 +1,5 @@
 "use client";
-import { Layout, Typography, Avatar, Dropdown, Space, Spin } from "antd";
+import { Layout, Typography, Avatar, Dropdown, Space, Spin, Modal } from "antd";
 import { useRouter, usePathname } from "next/navigation";
 import { UserOutlined, LogoutOutlined, DownOutlined } from "@ant-design/icons";
 import { MobileTopBar, DesktopSider } from "./NavBar";
@@ -24,10 +24,19 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const title = PAGE_TITLES[pathname] || "DealerHub";
 
-  const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
+  const logout = () => {
+    Modal.confirm({
+      title: "Đăng xuất?",
+      content: "Bạn có chắc muốn đăng xuất khỏi hệ thống?",
+      okText: "Đăng xuất",
+      cancelText: "Hủy",
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        await fetch("/api/auth/logout", { method: "POST" });
+        router.push("/login");
+        router.refresh();
+      },
+    });
   };
 
   if (loading) {

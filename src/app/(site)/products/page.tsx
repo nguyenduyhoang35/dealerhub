@@ -28,21 +28,40 @@ import {
   AppstoreOutlined,
   LoadingOutlined,
 } from "@ant-design/icons";
-import { fmtVND } from "@/lib/format";
+import { fmtVND, removeAccents } from "@/lib/format";
 import { useCategories, useProductsInfinite, type Product } from "@/hooks";
 
 type CartItem = Product & { qty: number };
 
 export default function ProductsPage() {
   const router = useRouter();
-  const { notification } = App.useApp();
+  const { notification, modal } = App.useApp();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartLoaded, setCartLoaded] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [addedProduct, setAddedProduct] = useState<number | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("dealerhub_cart");
+    if (saved) {
+      try {
+        setCart(JSON.parse(saved));
+      } catch {}
+    }
+    setCartLoaded(true);
+  }, []);
+
+  // Save cart to localStorage
+  useEffect(() => {
+    if (cartLoaded) {
+      localStorage.setItem("dealerhub_cart", JSON.stringify(cart));
+    }
+  }, [cart, cartLoaded]);
 
   // Debounce search
   useEffect(() => {
@@ -53,7 +72,7 @@ export default function ProductsPage() {
   // Fetch categories
   const { data: categories = [] } = useCategories();
 
-  // Infinite query for products
+  // Infinite query for products (search is done client-side for accent-insensitive)
   const {
     data,
     fetchNextPage,
@@ -63,14 +82,17 @@ export default function ProductsPage() {
     isError,
   } = useProductsInfinite({
     categoryId: activeCategory,
-    search: debouncedSearch,
   });
 
-  // Flatten all pages into single array
-  const products = useMemo(
-    () => data?.pages.flatMap((page) => page.data) || [],
-    [data]
-  );
+  // Flatten all pages into single array and filter by search (with accent-insensitive)
+  const products = useMemo(() => {
+    const allProducts = data?.pages.flatMap((page) => page.data) || [];
+    if (!debouncedSearch) return allProducts;
+    const searchNorm = removeAccents(debouncedSearch);
+    return allProducts.filter((p) =>
+      removeAccents(p.name).includes(searchNorm),
+    );
+  }, [data, debouncedSearch]);
 
   const totalProducts = data?.pages[0]?.pagination.total || 0;
 
@@ -88,7 +110,7 @@ export default function ProductsPage() {
 
       if (node) observerRef.current.observe(node);
     },
-    [isFetchingNextPage, hasNextPage, fetchNextPage]
+    [isFetchingNextPage, hasNextPage, fetchNextPage],
   );
 
   const addToCart = (product: Product, qty: number) => {
@@ -97,7 +119,7 @@ export default function ProductsPage() {
       const existing = prev.find((c) => c.id === product.id);
       if (existing) {
         return prev.map((c) =>
-          c.id === product.id ? { ...c, qty: c.qty + qty } : c
+          c.id === product.id ? { ...c, qty: c.qty + qty } : c,
         );
       }
       return [...prev, { ...product, qty }];
@@ -107,7 +129,7 @@ export default function ProductsPage() {
     setTimeout(() => setAddedProduct(null), 1500);
 
     notification.success({
-      message: "Đã thêm vào giỏ hàng",
+      title: "Đã thêm vào giỏ hàng",
       description: (
         <div className="flex items-center justify-between">
           <span>
@@ -141,11 +163,20 @@ export default function ProductsPage() {
   };
 
   const clearCart = () => {
-    setCart([]);
-    notification.info({
-      message: "Đã xóa giỏ hàng",
-      placement: "bottomRight",
-      duration: 2,
+    modal.confirm({
+      title: "Xóa giỏ hàng?",
+      content: `Bạn có chắc muốn xóa tất cả ${cartItemCount} sản phẩm khỏi giỏ hàng?`,
+      okText: "Xóa",
+      cancelText: "Hủy",
+      okButtonProps: { danger: true },
+      onOk: () => {
+        setCart([]);
+        notification.info({
+          title: "Đã xóa giỏ hàng",
+          placement: "bottomRight",
+          duration: 2,
+        });
+      },
     });
   };
 
@@ -215,7 +246,7 @@ export default function ProductsPage() {
         <div className="hidden lg:flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-              <ShoppingCartOutlined className="text-white text-xl" />
+              <ShoppingCartOutlined className="!text-white text-xl" />
             </div>
             <div>
               <div className="font-semibold text-slate-800">
@@ -233,10 +264,17 @@ export default function ProductsPage() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <span className="text-2xl font-bold text-blue-600">
               {fmtVND(cartTotal)}
             </span>
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={clearCart}
+            >
+              Xóa
+            </Button>
             <Button
               type="primary"
               size="large"
@@ -309,7 +347,9 @@ export default function ProductsPage() {
             </Badge>
             <div className="min-w-0">
               <div className="text-xs text-gray-500">
-                {cartItemCount > 0 ? `${cartItemCount} sản phẩm` : "Giỏ hàng trống"}
+                {cartItemCount > 0
+                  ? `${cartItemCount} sản phẩm`
+                  : "Giỏ hàng trống"}
               </div>
               <div className="text-base font-bold text-blue-600 truncate">
                 {fmtVND(cartTotal)}
@@ -332,7 +372,9 @@ export default function ProductsPage() {
       <Drawer
         title={
           <div className="flex items-center justify-between">
-            <span className="text-lg font-bold">Giỏ hàng ({cartItemCount})</span>
+            <span className="text-lg font-bold">
+              Giỏ hàng ({cartItemCount})
+            </span>
             {cart.length > 0 && (
               <Button
                 type="text"
@@ -376,7 +418,9 @@ export default function ProductsPage() {
                       <div className="text-sm text-gray-500">
                         <span>{item.unit}</span>
                         <span className="mx-2">•</span>
-                        <span className="text-blue-600">{fmtVND(item.price)}</span>
+                        <span className="text-blue-600">
+                          {fmtVND(item.price)}
+                        </span>
                       </div>
                     </div>
                     <Button
@@ -415,7 +459,9 @@ export default function ProductsPage() {
             <div className="border-t p-4 bg-gradient-to-r from-slate-50 to-blue-50">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-gray-600">Tổng sản phẩm:</span>
-                <span>{cartItemCount} sản phẩm ({cartCount} đơn vị)</span>
+                <span>
+                  {cartItemCount} sản phẩm ({cartCount} đơn vị)
+                </span>
               </div>
               <div className="flex items-center justify-between mb-4">
                 <span className="text-lg font-medium">Tổng tiền:</span>
@@ -429,7 +475,10 @@ export default function ProductsPage() {
                 block
                 icon={<CheckCircleOutlined />}
                 onClick={() => {
-                  sessionStorage.setItem("dealerhub_cart", JSON.stringify(cart));
+                  sessionStorage.setItem(
+                    "dealerhub_cart",
+                    JSON.stringify(cart),
+                  );
                   setCartOpen(false);
                   router.push("/orders/checkout");
                 }}
@@ -469,7 +518,7 @@ function ProductCard({
       <div className="flex flex-col h-full relative">
         {/* Cart indicator */}
         {cartQty > 0 && (
-          <div className="absolute -top-2 -right-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shadow">
+          <div className="absolute -top-2 -right-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold min-w-5 h-5 px-1.5 rounded-full flex items-center justify-center shadow">
             {cartQty}
           </div>
         )}
@@ -481,7 +530,10 @@ function ProductCard({
           </div>
         )}
 
-        <Typography.Text strong className="text-sm sm:text-base mb-1 line-clamp-2">
+        <Typography.Text
+          strong
+          className="text-sm sm:text-base mb-1 line-clamp-2"
+        >
           {product.name}
         </Typography.Text>
         <Typography.Text type="secondary" className="text-xs sm:text-sm mb-2">

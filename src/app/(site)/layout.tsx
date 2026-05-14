@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Layout, Menu, Button, Avatar, Dropdown, Space, Drawer } from "antd";
+import { Layout, Menu, Button, Avatar, Dropdown, Space, Drawer, Modal } from "antd";
 import {
   HomeOutlined,
   ShoppingCartOutlined,
@@ -73,9 +73,18 @@ export default function SiteLayout({
     },
   ];
 
-  const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    setUser(null);
+  const logout = () => {
+    Modal.confirm({
+      title: "Đăng xuất?",
+      content: "Bạn có chắc muốn đăng xuất khỏi tài khoản?",
+      okText: "Đăng xuất",
+      cancelText: "Hủy",
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        await fetch("/api/auth/logout", { method: "POST" });
+        setUser(null);
+      },
+    });
   };
 
   return (
