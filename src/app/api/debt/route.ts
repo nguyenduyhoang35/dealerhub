@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
       total_revenue: 0,
       total_paid: 0,
       total_debt: 0,
+      agent_id: null,
       orders: [],
       pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
     });
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
   // Get paginated orders
   const { data: orders, error, count } = await db()
     .from("orders")
-    .select("id, total, paid, status, created_at, delivery_date", { count: "exact" })
+    .select("id, agent_id, total, paid, status, created_at, delivery_date", { count: "exact" })
     .eq("agent_id", user.agent_id)
     .order("created_at", { ascending: false })
     .range((page - 1) * limit, page * limit - 1);
@@ -55,6 +56,7 @@ export async function GET(req: NextRequest) {
     total_revenue,
     total_paid,
     total_debt,
+    agent_id: user.agent_id,
     orders: orders || [],
     pagination: {
       page,

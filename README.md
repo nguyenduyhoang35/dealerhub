@@ -9,6 +9,7 @@ Hệ thống quản lý giao hàng đại lý - Vietnamese SMB delivery manageme
 - Đặt hàng theo Excel - tải mẫu, điền số lượng, upload
 - Theo dõi đơn hàng và trạng thái giao hàng
 - Quản lý công nợ minh bạch
+- Thanh toán QR Bank Transfer (VietQR) - tự động ghi nhận
 
 ### Dành cho Admin
 - Quản lý đại lý (agents)
@@ -35,6 +36,7 @@ Hệ thống quản lý giao hàng đại lý - Vietnamese SMB delivery manageme
 | State | TanStack Query |
 | Auth | Custom PIN + Cookie Session |
 | Excel | ExcelJS |
+| Payment | VietQR + SePay (webhook) |
 
 ## Cài đặt
 
@@ -111,6 +113,12 @@ src/
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
+
+# Payment (SePay + VietQR)
+SEPAY_BANK_ID=MB                    # MB, VCB, TCB, ACB, TPB, VPB, BIDV...
+SEPAY_ACCOUNT_NUMBER=0123456789     # Số tài khoản nhận tiền
+SEPAY_ACCOUNT_NAME=NGUYEN VAN A     # Tên chủ tài khoản
+SEPAY_API_KEY=                      # API key từ my.sepay.vn (để xác thực webhook)
 ```
 
 ## Tài khoản mẫu

@@ -48,8 +48,10 @@ export type DebtInfo = {
   total_revenue: number;
   total_paid: number;
   total_debt: number;
+  agent_id: number | null;
   orders: {
     id: number;
+    agent_id: number;
     total: number;
     paid: number;
     status: string;
@@ -62,6 +64,29 @@ export type DebtInfo = {
     total: number;
     totalPages: number;
   };
+};
+
+export type PaymentInfo = {
+  qr_url: string;
+  bank_name: string;
+  account_number: string;
+  account_name: string;
+  amount: number;
+  content: string;
+  order_id?: number;
+  expires_at: string;
+};
+
+export type PaymentTransaction = {
+  id: number;
+  order_id: number | null;
+  agent_id: number | null;
+  amount: number;
+  content: string;
+  status: "pending" | "completed" | "expired";
+  bank_ref: string | null;
+  created_at: string;
+  completed_at: string | null;
 };
 
 export type PaginatedResponse<T> = {

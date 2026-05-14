@@ -1,20 +1,23 @@
 "use client";
 import { useState } from "react";
-import { Card, Table, Typography, Empty, Spin, Tag } from "antd";
+import { Card, Table, Typography, Empty, Spin, Tag, Button } from "antd";
 import {
   DollarOutlined,
   CheckCircleOutlined,
   WarningOutlined,
   WalletOutlined,
+  QrcodeOutlined,
 } from "@ant-design/icons";
 import { fmtVND, STATUS_LABEL, STATUS_TAG } from "@/lib/format";
 import { useDebt } from "@/hooks";
+import PaymentModal from "@/components/PaymentModal";
 import dayjs from "dayjs";
 
 export default function DebtPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const { data, isLoading, isError } = useDebt({ page, limit: pageSize });
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const { data, isLoading, isError, refetch } = useDebt({ page, limit: pageSize });
 
   if (isLoading) {
     return (
@@ -79,6 +82,21 @@ export default function DebtPage() {
             </div>
           </div>
         </div>
+
+        {/* Payment button */}
+        {data.total_debt > 0 && data.agent_id && (
+          <div className="mt-6 text-center">
+            <Button
+              type="primary"
+              icon={<QrcodeOutlined />}
+              size="large"
+              onClick={() => setPaymentOpen(true)}
+              className="!bg-white !text-orange-600 !border-0 !font-semibold hover:!bg-orange-50"
+            >
+              Thanh toán công nợ
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Recent Orders */}
@@ -168,6 +186,18 @@ export default function DebtPage() {
           />
         )}
       </Card>
+
+      {/* Payment Modal */}
+      {data.agent_id && (
+        <PaymentModal
+          open={paymentOpen}
+          onClose={() => setPaymentOpen(false)}
+          type="debt"
+          agentId={data.agent_id}
+          maxAmount={data.total_debt}
+          onSuccess={() => refetch()}
+        />
+      )}
     </div>
   );
 }

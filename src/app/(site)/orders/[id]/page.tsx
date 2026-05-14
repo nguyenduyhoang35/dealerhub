@@ -1,5 +1,5 @@
 "use client";
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -18,9 +18,11 @@ import {
   UserOutlined,
   PhoneOutlined,
   EnvironmentOutlined,
+  QrcodeOutlined,
 } from "@ant-design/icons";
 import { fmtVND, STATUS_LABEL, STATUS_TAG } from "@/lib/format";
 import { useOrder } from "@/hooks";
+import PaymentModal from "@/components/PaymentModal";
 import dayjs from "dayjs";
 
 export default function OrderDetailPage({
@@ -29,7 +31,8 @@ export default function OrderDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: order, isLoading, isError } = useOrder(id);
+  const { data: order, isLoading, isError, refetch } = useOrder(id);
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -109,6 +112,21 @@ export default function OrderDetailPage({
             </div>
           </div>
         </div>
+
+        {/* Payment button */}
+        {debt > 0 && (
+          <div className="mt-4 text-center">
+            <Button
+              type="primary"
+              icon={<QrcodeOutlined />}
+              size="large"
+              onClick={() => setPaymentOpen(true)}
+              className="!bg-white !text-purple-600 !border-0 !font-semibold hover:!bg-purple-50"
+            >
+              Thanh toán ngay
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Order Info */}
@@ -237,6 +255,16 @@ export default function OrderDetailPage({
           )}
         />
       </Card>
+
+      {/* Payment Modal */}
+      <PaymentModal
+        open={paymentOpen}
+        onClose={() => setPaymentOpen(false)}
+        type="order"
+        orderId={order.id}
+        maxAmount={debt}
+        onSuccess={() => refetch()}
+      />
     </div>
   );
 }
