@@ -14,6 +14,7 @@ export default function FormDrawer({
   width = 520,
   children,
   footerExtra,
+  loading,
 }: {
   title: React.ReactNode;
   open: boolean;
@@ -25,6 +26,7 @@ export default function FormDrawer({
   width?: number;
   children: React.ReactNode;
   footerExtra?: React.ReactNode;
+  loading?: boolean;
 }) {
   const screens = useBreakpoint();
   const isMobile = !screens.md;
@@ -50,7 +52,7 @@ export default function FormDrawer({
           {footerExtra}
           <Button onClick={onClose}>{cancelText}</Button>
           {onOk && (
-            <Button type="primary" danger={okDanger} onClick={onOk}>
+            <Button type="primary" danger={okDanger} onClick={onOk} loading={loading}>
               {okText}
             </Button>
           )}

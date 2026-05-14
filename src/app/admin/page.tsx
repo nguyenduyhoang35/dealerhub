@@ -1,5 +1,4 @@
 "use client";
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -20,73 +19,28 @@ import {
   RiseOutlined,
 } from "@ant-design/icons";
 import { fmtVND, STATUS_LABEL, STATUS_TAG } from "@/lib/format";
-
-type Stats = {
-  totals: {
-    orders: number;
-    revenue: number;
-    paid: number;
-    debt: number;
-    pending: number;
-    delivering: number;
-    delivered: number;
-    cancelled: number;
-  };
-  byAgent: {
-    id: number;
-    name: string;
-    order_count: number;
-    revenue: number;
-    paid: number;
-    debt: number;
-  }[];
-  todayByDriver: {
-    id: number;
-    name: string;
-    vehicle_plate: string | null;
-    orders: number;
-    delivered: number;
-    remaining: number;
-    total_value: number;
-    collected: number;
-  }[];
-  today: string;
-  byMonth: { month: string; orders: number; revenue: number }[];
-};
+import { useAdminStats } from "@/hooks";
 
 const fmtNum = (v: any) => new Intl.NumberFormat("vi-VN").format(Number(v));
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<Stats | null>(null);
+  const { data: stats, isLoading, isError } = useAdminStats();
 
-  useEffect(() => {
-    fetch("/api/stats")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.error) {
-          console.error("Stats error:", data.error);
-          setStats({
-            totals: { orders: 0, revenue: 0, paid: 0, debt: 0, pending: 0, delivering: 0, delivered: 0, cancelled: 0 },
-            byAgent: [],
-            todayByDriver: [],
-            byMonth: [],
-            today: new Date().toISOString().slice(0, 10),
-          });
-        } else {
-          setStats(data);
-        }
-      })
-      .catch((err) => {
-        console.error("Stats fetch error:", err);
-      });
-  }, []);
-
-  if (!stats)
+  if (isLoading) {
     return (
       <div className="flex justify-center py-20">
         <Spin />
       </div>
     );
+  }
+
+  if (isError || !stats) {
+    return (
+      <Card className="text-center py-12">
+        <Empty description="Lỗi tải dữ liệu" />
+      </Card>
+    );
+  }
 
   const t = stats.totals || { orders: 0, revenue: 0, paid: 0, debt: 0, pending: 0, delivering: 0, delivered: 0, cancelled: 0 };
 

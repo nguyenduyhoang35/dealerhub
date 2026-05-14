@@ -1,11 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Table,
   Button,
   Form,
   Input,
-  InputNumber,
   Select,
   Space,
   Typography,
@@ -20,51 +19,32 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined, DownloadOutlined } from "@ant-design/icons";
 import { fmtVND, vndInputProps } from "@/lib/format";
 import FormDrawer from "../FormDrawer";
+import CommonInputNumber from "@/components/CommonInputNumber";
+import {
+  useAdminProducts,
+  useCategories,
+  useCreateProduct,
+  useUpdateProduct,
+  useDeleteProduct,
+  type Product,
+} from "@/hooks";
 
 const { useBreakpoint } = Grid;
-
-type Category = {
-  id: number;
-  name: string;
-};
-
-type Product = {
-  id: number;
-  name: string;
-  unit: string;
-  price: number;
-  stock: number;
-  category_id: number | null;
-  category: Category | null;
-};
 
 export default function ProductsPage() {
   const { message } = App.useApp();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(false);
+
+  const { data: products = [], isLoading } = useAdminProducts();
+  const { data: categories = [] } = useCategories();
+  const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+  const deleteProduct = useDeleteProduct();
+
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form] = Form.useForm();
-
-  const load = async () => {
-    setLoading(true);
-    const [prodRes, catRes] = await Promise.all([
-      fetch("/api/products"),
-      fetch("/api/categories"),
-    ]);
-    const prodData = await prodRes.json();
-    const catData = await catRes.json();
-    setProducts(Array.isArray(prodData) ? prodData : []);
-    setCategories(Array.isArray(catData) ? catData : []);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
 
   const openCreate = () => {
     setEditing(null);
@@ -81,26 +61,27 @@ export default function ProductsPage() {
 
   const submit = async () => {
     const values = await form.validateFields();
-    const url = editing ? `/api/products/${editing.id}` : "/api/products";
-    const r = await fetch(url, {
-      method: editing ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
-    });
-    if (!r.ok) {
-      const e = await r.json();
-      message.error(e.error || "Lỗi lưu");
-      return;
+    try {
+      if (editing) {
+        await updateProduct.mutateAsync({ id: editing.id, ...values });
+        message.success("Đã cập nhật");
+      } else {
+        await createProduct.mutateAsync(values);
+        message.success("Đã thêm sản phẩm");
+      }
+      setOpen(false);
+    } catch (err: any) {
+      message.error(err.message || "Lỗi lưu");
     }
-    message.success(editing ? "Đã cập nhật" : "Đã thêm sản phẩm");
-    setOpen(false);
-    load();
   };
 
   const del = async (id: number) => {
-    await fetch(`/api/products/${id}`, { method: "DELETE" });
-    message.success("Đã xóa");
-    load();
+    try {
+      await deleteProduct.mutateAsync(id);
+      message.success("Đã xóa");
+    } catch (err: any) {
+      message.error(err.message || "Lỗi xóa");
+    }
   };
 
   return (
@@ -123,7 +104,7 @@ export default function ProductsPage() {
 
       {isMobile ? (
         <div className="flex flex-col gap-2">
-          {loading ? (
+          {isLoading ? (
             <div className="flex justify-center py-10">
               <Spin />
             </div>
@@ -146,10 +127,10 @@ export default function ProductsPage() {
                       <span className="font-bold text-blue-600">{fmtVND(p.price)}</span>
                       <Tag className="!m-0">{p.unit}</Tag>
                       <Tag
-                        color={p.stock > 0 ? "green" : "red"}
+                        color={(p.stock || 0) > 0 ? "green" : "red"}
                         className="!m-0"
                       >
-                        Tồn: {p.stock}
+                        Tồn: {p.stock || 0}
                       </Tag>
                     </div>
                     {p.category && (
@@ -182,15 +163,16 @@ export default function ProductsPage() {
         <Card styles={{ body: { padding: 0 } }}>
           <Table
             dataSource={products}
-            loading={loading}
+            loading={isLoading}
             rowKey="id"
             pagination={{ pageSize: 20 }}
             scroll={{ x: 900 }}
             columns={[
+              { title: "ID", dataIndex: "id", width: 70 },
               {
                 title: "Tên sản phẩm",
                 dataIndex: "name",
-                width: 250,
+                width: 220,
                 ellipsis: true,
                 render: (v) => <b>{v}</b>,
               },
@@ -198,7 +180,7 @@ export default function ProductsPage() {
                 title: "Danh mục",
                 dataIndex: "category",
                 width: 150,
-                render: (c: Category | null) =>
+                render: (c: { id: number; name: string } | null) =>
                   c ? <Tag color="purple">{c.name}</Tag> : <span className="text-gray-400">—</span>,
                 filters: categories.map((c) => ({ text: c.name, value: c.id })),
                 onFilter: (value, record) => record.category_id === value,
@@ -217,7 +199,7 @@ export default function ProductsPage() {
                 dataIndex: "stock",
                 align: "right",
                 width: 100,
-                sorter: (a, b) => a.stock - b.stock,
+                sorter: (a, b) => (a.stock || 0) - (b.stock || 0),
               },
               {
                 title: "",
@@ -258,6 +240,7 @@ export default function ProductsPage() {
         onClose={() => setOpen(false)}
         onOk={submit}
         okText={editing ? "Cập nhật" : "Thêm"}
+        loading={createProduct.isPending || updateProduct.isPending}
       >
         <Form form={form} layout="vertical" requiredMark={false}>
           <Form.Item label="Tên" name="name" rules={[{ required: true, message: "Nhập tên" }]}>
@@ -274,7 +257,7 @@ export default function ProductsPage() {
             <Input placeholder="thùng, chai, kg..." />
           </Form.Item>
           <Form.Item label="Giá (VNĐ)" name="price">
-            <InputNumber
+            <CommonInputNumber
               className="!w-full"
               min={0}
               step={1000}
@@ -282,7 +265,7 @@ export default function ProductsPage() {
             />
           </Form.Item>
           <Form.Item label="Tồn kho" name="stock">
-            <InputNumber className="!w-full" min={0} />
+            <CommonInputNumber className="!w-full" min={0} />
           </Form.Item>
         </Form>
       </FormDrawer>

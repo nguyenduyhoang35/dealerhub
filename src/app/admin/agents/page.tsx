@@ -1,5 +1,4 @@
 "use client";
-import { useEffect, useState } from "react";
 import {
   Table,
   Button,
@@ -22,44 +21,32 @@ import {
   PhoneOutlined,
   EnvironmentOutlined,
 } from "@ant-design/icons";
+import { useState } from "react";
 import FormDrawer from "../FormDrawer";
+import { useAgents, useCreateAgent, useUpdateAgent, useDeleteAgent, type Agent } from "@/hooks";
 
 const { useBreakpoint } = Grid;
-
-type Agent = {
-  id: number;
-  name: string;
-  phone: string | null;
-  address: string | null;
-  note: string | null;
-};
 
 export default function AgentsPage() {
   const { message } = App.useApp();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [loading, setLoading] = useState(false);
+
+  const { data: agents = [], isLoading } = useAgents();
+  const createAgent = useCreateAgent();
+  const updateAgent = useUpdateAgent();
+  const deleteAgent = useDeleteAgent();
+
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Agent | null>(null);
   const [form] = Form.useForm();
-
-  const load = async () => {
-    setLoading(true);
-    const r = await fetch("/api/agents");
-    const data = await r.json();
-    setAgents(Array.isArray(data) ? data : []);
-    setLoading(false);
-  };
-  useEffect(() => {
-    load();
-  }, []);
 
   const openCreate = () => {
     setEditing(null);
     form.resetFields();
     setOpen(true);
   };
+
   const openEdit = (a: Agent) => {
     setEditing(a);
     form.setFieldsValue(a);
@@ -68,27 +55,27 @@ export default function AgentsPage() {
 
   const submit = async () => {
     const values = await form.validateFields();
-    const url = editing ? `/api/agents/${editing.id}` : "/api/agents";
-    const method = editing ? "PUT" : "POST";
-    const r = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
-    });
-    if (!r.ok) {
-      const e = await r.json();
-      message.error(e.error || "Lỗi lưu");
-      return;
+    try {
+      if (editing) {
+        await updateAgent.mutateAsync({ id: editing.id, ...values });
+        message.success("Đã cập nhật");
+      } else {
+        await createAgent.mutateAsync(values);
+        message.success("Đã thêm đại lý");
+      }
+      setOpen(false);
+    } catch (err: any) {
+      message.error(err.message || "Lỗi lưu");
     }
-    message.success(editing ? "Đã cập nhật" : "Đã thêm đại lý");
-    setOpen(false);
-    load();
   };
 
   const del = async (id: number) => {
-    await fetch(`/api/agents/${id}`, { method: "DELETE" });
-    message.success("Đã xóa");
-    load();
+    try {
+      await deleteAgent.mutateAsync(id);
+      message.success("Đã xóa");
+    } catch (err: any) {
+      message.error(err.message || "Lỗi xóa");
+    }
   };
 
   return (
@@ -111,7 +98,7 @@ export default function AgentsPage() {
 
       {isMobile ? (
         <div className="flex flex-col gap-2">
-          {loading ? (
+          {isLoading ? (
             <div className="flex justify-center py-10">
               <Spin />
             </div>
@@ -175,12 +162,13 @@ export default function AgentsPage() {
         <Card styles={{ body: { padding: 0 } }}>
           <Table
             dataSource={agents}
-            loading={loading}
+            loading={isLoading}
             rowKey="id"
             pagination={{ pageSize: 20 }}
             scroll={{ x: 720 }}
             columns={[
-              { title: "Tên", dataIndex: "name", width: 240, ellipsis: true, render: (v) => <b>{v}</b> },
+              { title: "ID", dataIndex: "id", width: 70 },
+              { title: "Tên", dataIndex: "name", width: 200, ellipsis: true, render: (v) => <b>{v}</b> },
               { title: "SĐT", dataIndex: "phone", width: 140, render: (v) => v || "—" },
               { title: "Địa chỉ", dataIndex: "address", ellipsis: true, render: (v) => v || "—", responsive: ["md"] },
               { title: "Ghi chú", dataIndex: "note", ellipsis: true, render: (v) => <span className="text-slate-500">{v || "—"}</span>, responsive: ["lg"] },
@@ -219,6 +207,7 @@ export default function AgentsPage() {
         onClose={() => setOpen(false)}
         onOk={submit}
         okText={editing ? "Cập nhật" : "Thêm"}
+        loading={createAgent.isPending || updateAgent.isPending}
       >
         <Form form={form} layout="vertical" requiredMark={false}>
           <Form.Item

@@ -4,6 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { UserOutlined, LogoutOutlined, DownOutlined } from "@ant-design/icons";
 import { MobileTopBar, DesktopSider } from "./NavBar";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import QueryProvider from "@/components/QueryProvider";
 
 const PAGE_TITLES: Record<string, string> = {
   "/admin": "Dashboard",
@@ -114,8 +115,10 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <AuthProvider>
-      <AppShellContent>{children}</AppShellContent>
-    </AuthProvider>
+    <QueryProvider>
+      <AuthProvider>
+        <AppShellContent>{children}</AppShellContent>
+      </AuthProvider>
+    </QueryProvider>
   );
 }

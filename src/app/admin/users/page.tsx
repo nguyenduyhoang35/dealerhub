@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Table,
   Button,
@@ -25,31 +25,28 @@ import {
   CarOutlined,
 } from "@ant-design/icons";
 import FormDrawer from "../FormDrawer";
+import {
+  useUsers,
+  useRoles,
+  useAgents,
+  useCreateUser,
+  useUpdateUser,
+  useDeleteUser,
+} from "@/hooks";
 
 const { useBreakpoint } = Grid;
 
-type Role = {
-  id: number;
-  name: string;
-  display_name: string;
-};
-
-type Agent = {
-  id: number;
-  name: string;
-};
-
-type User = {
+type LocalUser = {
   id: number;
   name: string;
   phone: string;
   vehicle_plate: string | null;
   role_id: number | null;
   role?: string;
-  roles?: Role;
+  roles?: { id: number; name: string; display_name: string };
   agent_id: number | null;
-  agents?: Agent;
-  active: number;
+  agents?: { id: number; name: string };
+  active: number | boolean;
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -63,30 +60,18 @@ export default function UsersPage() {
   const { message } = App.useApp();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
-  const [users, setUsers] = useState<User[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [loading, setLoading] = useState(false);
+
+  const { data: users = [], isLoading } = useUsers();
+  const { data: roles = [] } = useRoles();
+  const { data: agents = [] } = useAgents();
+  const createUser = useCreateUser();
+  const updateUser = useUpdateUser();
+  const deleteUser = useDeleteUser();
+
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<User | null>(null);
+  const [editing, setEditing] = useState<LocalUser | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [form] = Form.useForm();
-
-  const load = async () => {
-    setLoading(true);
-    const [usersRes, rolesRes, agentsRes] = await Promise.all([
-      fetch("/api/users"),
-      fetch("/api/roles"),
-      fetch("/api/agents"),
-    ]);
-    const usersData = await usersRes.json();
-    const rolesData = await rolesRes.json();
-    const agentsData = await agentsRes.json();
-    setUsers(Array.isArray(usersData) ? usersData : []);
-    setRoles(Array.isArray(rolesData) ? rolesData : []);
-    setAgents(Array.isArray(agentsData) ? agentsData : []);
-    setLoading(false);
-  };
 
   const isCustomerRole = (roleId: number | null): boolean => {
     if (!roleId) return false;
@@ -94,22 +79,17 @@ export default function UsersPage() {
     return role?.name === "customer";
   };
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  const getRoleName = (user: User): string => {
+  const getRoleName = (user: LocalUser): string => {
     if (user.roles) return user.roles.name;
     if (user.role) return user.role;
     const role = roles.find((r) => r.id === user.role_id);
     return role?.name || "customer";
   };
 
-  const getRoleDisplayName = (user: User): string => {
+  const getRoleDisplayName = (user: LocalUser): string => {
     if (user.roles) return user.roles.display_name;
     const role = roles.find((r) => r.id === user.role_id);
     if (role) return role.display_name;
-    // Fallback for old role string
     const fallback: Record<string, string> = {
       superadmin: "Super Admin",
       admin: "Quản lý",
@@ -119,7 +99,7 @@ export default function UsersPage() {
     return fallback[user.role || "customer"] || "Khách hàng";
   };
 
-  const getAgentName = (user: User): string | null => {
+  const getAgentName = (user: LocalUser): string | null => {
     if (user.agents) return user.agents.name;
     if (user.agent_id) {
       const agent = agents.find((a) => a.id === user.agent_id);
@@ -137,7 +117,7 @@ export default function UsersPage() {
     setOpen(true);
   };
 
-  const openEdit = (u: User) => {
+  const openEdit = (u: LocalUser) => {
     setEditing(u);
     setSelectedRoleId(u.role_id);
     form.setFieldsValue({ ...u, pin: "", active: !!u.active });
@@ -146,31 +126,27 @@ export default function UsersPage() {
 
   const submit = async () => {
     const values = await form.validateFields();
-    const url = editing ? `/api/users/${editing.id}` : "/api/users";
-    const r = await fetch(url, {
-      method: editing ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
-    });
-    if (!r.ok) {
-      const e = await r.json();
-      message.error(e.error || "Lỗi lưu");
-      return;
+    try {
+      if (editing) {
+        await updateUser.mutateAsync({ id: editing.id, ...values });
+        message.success("Đã cập nhật");
+      } else {
+        await createUser.mutateAsync(values);
+        message.success("Đã thêm tài khoản");
+      }
+      setOpen(false);
+    } catch (err: any) {
+      message.error(err.message || "Lỗi lưu");
     }
-    message.success(editing ? "Đã cập nhật" : "Đã thêm tài khoản");
-    setOpen(false);
-    load();
   };
 
   const del = async (id: number) => {
-    const r = await fetch(`/api/users/${id}`, { method: "DELETE" });
-    if (!r.ok) {
-      const e = await r.json();
-      message.error(e.error || "Lỗi xóa");
-      return;
+    try {
+      await deleteUser.mutateAsync(id);
+      message.success("Đã xóa");
+    } catch (err: any) {
+      message.error(err.message || "Lỗi xóa");
     }
-    message.success("Đã xóa");
-    load();
   };
 
   return (
@@ -192,16 +168,16 @@ export default function UsersPage() {
 
       {isMobile ? (
         <div className="flex flex-col gap-2">
-          {loading ? (
+          {isLoading ? (
             <div className="flex justify-center py-10">
               <Spin />
             </div>
-          ) : users.length === 0 ? (
+          ) : (users as LocalUser[]).length === 0 ? (
             <Card>
               <Empty description="Chưa có tài khoản" />
             </Card>
           ) : (
-            users.map((u) => {
+            (users as LocalUser[]).map((u) => {
               const roleName = getRoleName(u);
               const roleDisplay = getRoleDisplayName(u);
               return (
@@ -264,13 +240,14 @@ export default function UsersPage() {
       ) : (
         <Card styles={{ body: { padding: 0 } }}>
           <Table
-            dataSource={users}
-            loading={loading}
+            dataSource={users as LocalUser[]}
+            loading={isLoading}
             rowKey="id"
             pagination={false}
             scroll={{ x: 880 }}
             columns={[
-              { title: "Tên", dataIndex: "name", width: 180, ellipsis: true, render: (v) => <b>{v}</b> },
+              { title: "ID", dataIndex: "id", width: 70 },
+              { title: "Tên", dataIndex: "name", width: 150, ellipsis: true, render: (v) => <b>{v}</b> },
               { title: "SĐT", dataIndex: "phone", width: 130 },
               { title: "Biển số", dataIndex: "vehicle_plate", width: 120, render: (v) => v || "—" },
               {
@@ -330,6 +307,7 @@ export default function UsersPage() {
         open={open}
         onClose={() => setOpen(false)}
         onOk={submit}
+        loading={createUser.isPending || updateUser.isPending}
       >
         <Form form={form} layout="vertical">
           <Form.Item label="Tên" name="name" rules={[{ required: true, message: "Nhập tên" }]}>

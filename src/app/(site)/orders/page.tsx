@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { Card, Table, Tag, Typography, Empty, Spin, Button } from "antd";
 import {
@@ -9,41 +9,37 @@ import {
   ShoppingCartOutlined,
 } from "@ant-design/icons";
 import { fmtVND, STATUS_LABEL, STATUS_TAG } from "@/lib/format";
+import { useOrders } from "@/hooks";
 import dayjs from "dayjs";
 
-type Order = {
-  id: number;
-  agent_name: string;
-  total: number;
-  paid: number;
-  status: string;
-  delivery_date: string | null;
-  created_at: string;
-};
-
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading, isError } = useOrders();
 
-  useEffect(() => {
-    fetch("/api/orders")
-      .then((r) => r.json())
-      .then((data) => setOrders(Array.isArray(data) ? data : []))
-      .finally(() => setLoading(false));
-  }, []);
+  const orders = data?.data || [];
 
-  const stats = {
-    total: orders.length,
-    pending: orders.filter((o) => o.status === "pending").length,
-    delivering: orders.filter((o) => o.status === "delivering").length,
-    delivered: orders.filter((o) => o.status === "delivered").length,
-  };
+  const stats = useMemo(
+    () => ({
+      total: orders.length,
+      pending: orders.filter((o) => o.status === "pending").length,
+      delivering: orders.filter((o) => o.status === "delivering").length,
+      delivered: orders.filter((o) => o.status === "delivered").length,
+    }),
+    [orders]
+  );
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center py-20">
         <Spin size="large" />
       </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card className="text-center py-12">
+        <Empty description="Lỗi tải đơn hàng" />
+      </Card>
     );
   }
 

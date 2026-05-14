@@ -1,5 +1,4 @@
 "use client";
-import { useEffect, useState } from "react";
 import { Card, Table, Typography, Empty, Spin, Tag } from "antd";
 import {
   DollarOutlined,
@@ -8,34 +7,13 @@ import {
   WalletOutlined,
 } from "@ant-design/icons";
 import { fmtVND, STATUS_LABEL, STATUS_TAG } from "@/lib/format";
+import { useDebt } from "@/hooks";
 import dayjs from "dayjs";
 
-type DebtInfo = {
-  total_orders: number;
-  total_revenue: number;
-  total_paid: number;
-  total_debt: number;
-  recent_orders: {
-    id: number;
-    total: number;
-    paid: number;
-    status: string;
-    created_at: string;
-  }[];
-};
-
 export default function DebtPage() {
-  const [data, setData] = useState<DebtInfo | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading, isError } = useDebt();
 
-  useEffect(() => {
-    fetch("/api/debt")
-      .then((r) => r.json())
-      .then(setData)
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center py-20">
         <Spin size="large" />
@@ -43,7 +21,7 @@ export default function DebtPage() {
     );
   }
 
-  if (!data) {
+  if (isError || !data) {
     return (
       <Card className="text-center py-12">
         <Empty description="Không thể tải thông tin công nợ" />

@@ -8,8 +8,8 @@ export async function GET(req: NextRequest) {
 
   const { data: drivers, error: dErr } = await db()
     .from("users")
-    .select("id, name, vehicle_plate")
-    .eq("role", "driver")
+    .select("id, name, vehicle_plate, roles!inner(name)")
+    .eq("roles.name", "driver")
     .eq("active", true)
     .order("name");
   if (dErr) return new Response(dErr.message, { status: 500 });

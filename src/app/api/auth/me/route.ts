@@ -28,7 +28,7 @@ export async function GET() {
       .single();
     if (role) {
       role_display = role.display_name;
-      is_system_role = role.is_system;
+      is_system_role = role.is_system || false;
     }
   }
 

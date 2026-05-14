@@ -1,11 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Table,
   Button,
   Form,
   Input,
-  InputNumber,
   Space,
   Typography,
   Popconfirm,
@@ -17,36 +16,32 @@ import {
 } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import FormDrawer from "../FormDrawer";
+import CommonInputNumber from "@/components/CommonInputNumber";
+import {
+  useCategories,
+  useCreateCategory,
+  useUpdateCategory,
+  useDeleteCategory,
+  type Category,
+} from "@/hooks";
 
 const { useBreakpoint } = Grid;
 
-type Category = {
-  id: number;
-  name: string;
-  sort_order: number;
-};
+type CategoryWithSort = Category & { sort_order: number };
 
 export default function CategoriesPage() {
   const { message } = App.useApp();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(false);
+
+  const { data: categories = [], isLoading } = useCategories();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategory = useDeleteCategory();
+
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Category | null>(null);
+  const [editing, setEditing] = useState<CategoryWithSort | null>(null);
   const [form] = Form.useForm();
-
-  const load = async () => {
-    setLoading(true);
-    const r = await fetch("/api/categories");
-    const data = await r.json();
-    setCategories(Array.isArray(data) ? data : []);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
 
   const openCreate = () => {
     setEditing(null);
@@ -55,7 +50,7 @@ export default function CategoriesPage() {
     setOpen(true);
   };
 
-  const openEdit = (c: Category) => {
+  const openEdit = (c: CategoryWithSort) => {
     setEditing(c);
     form.setFieldsValue(c);
     setOpen(true);
@@ -63,32 +58,30 @@ export default function CategoriesPage() {
 
   const submit = async () => {
     const values = await form.validateFields();
-    const url = editing ? `/api/categories/${editing.id}` : "/api/categories";
-    const r = await fetch(url, {
-      method: editing ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
-    });
-    if (!r.ok) {
-      const e = await r.json();
-      message.error(e.error || "Lỗi lưu");
-      return;
+    try {
+      if (editing) {
+        await updateCategory.mutateAsync({ id: editing.id, ...values });
+        message.success("Đã cập nhật");
+      } else {
+        await createCategory.mutateAsync(values);
+        message.success("Đã thêm danh mục");
+      }
+      setOpen(false);
+    } catch (err: any) {
+      message.error(err.message || "Lỗi lưu");
     }
-    message.success(editing ? "Đã cập nhật" : "Đã thêm danh mục");
-    setOpen(false);
-    load();
   };
 
   const del = async (id: number) => {
-    const r = await fetch(`/api/categories/${id}`, { method: "DELETE" });
-    if (!r.ok) {
-      const e = await r.json();
-      message.error(e.error || "Lỗi xóa");
-      return;
+    try {
+      await deleteCategory.mutateAsync(id);
+      message.success("Đã xóa");
+    } catch (err: any) {
+      message.error(err.message || "Lỗi xóa");
     }
-    message.success("Đã xóa");
-    load();
   };
+
+  const categoriesWithSort = categories as CategoryWithSort[];
 
   return (
     <>
@@ -104,18 +97,18 @@ export default function CategoriesPage() {
         </Space>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex justify-center py-12">
           <Spin size="large" />
         </div>
       ) : isMobile ? (
         <div className="space-y-3">
-          {categories.length === 0 ? (
+          {categoriesWithSort.length === 0 ? (
             <Card className="text-center py-8 text-gray-500">
               Chưa có danh mục nào
             </Card>
           ) : (
-            categories.map((c) => (
+            categoriesWithSort.map((c) => (
               <Card
                 key={c.id}
                 size="small"
@@ -155,7 +148,7 @@ export default function CategoriesPage() {
       ) : (
         <Card styles={{ body: { padding: 0 } }}>
           <Table
-            dataSource={categories}
+            dataSource={categoriesWithSort}
             rowKey="id"
             pagination={false}
             columns={[
@@ -202,6 +195,7 @@ export default function CategoriesPage() {
         open={open}
         onClose={() => setOpen(false)}
         onOk={submit}
+        loading={createCategory.isPending || updateCategory.isPending}
       >
         <Form form={form} layout="vertical">
           <Form.Item
@@ -216,7 +210,7 @@ export default function CategoriesPage() {
             label="Thứ tự hiển thị"
             tooltip="Số nhỏ hơn hiển thị trước"
           >
-            <InputNumber min={0} className="w-full" placeholder="0" />
+            <CommonInputNumber min={0} className="w-full" placeholder="0" />
           </Form.Item>
         </Form>
       </FormDrawer>

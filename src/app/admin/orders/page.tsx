@@ -6,7 +6,6 @@ import {
   Modal,
   Form,
   Select,
-  InputNumber,
   Input,
   DatePicker,
   Tag,
@@ -20,6 +19,11 @@ import {
   Empty,
   Grid,
   Spin,
+  Upload,
+  Steps,
+  Alert,
+  Dropdown,
+  Pagination,
 } from "antd";
 
 const { useBreakpoint } = Grid;
@@ -28,15 +32,26 @@ import {
   DeleteOutlined,
   EyeOutlined,
   DownloadOutlined,
+  UploadOutlined,
+  FileExcelOutlined,
+  DownOutlined,
 } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
-import { fmtVND, STATUS_LABEL, STATUS_TAG, vndInputProps } from "@/lib/format";
+import { fmtVND, STATUS_LABEL, STATUS_TAG } from "@/lib/format";
 import FormDrawer from "../FormDrawer";
+import CommonInputNumber from "@/components/CommonInputNumber";
 
 type Agent = { id: number; name: string };
 type Product = { id: number; name: string; unit: string; price: number };
-type Driver = { id: number; name: string; vehicle_plate: string | null; role: string; active: number };
+type Driver = { id: number; name: string; vehicle_plate: string | null; roles?: { name: string } | { name: string }[]; active: boolean | number };
+
+const getRoleName = (d: Driver) => {
+  if (!d.roles) return null;
+  if (Array.isArray(d.roles)) return d.roles[0]?.name;
+  return d.roles.name;
+};
 type Item = {
+  id?: number;
   product_id: number;
   product_name?: string;
   product_unit?: string;
@@ -58,6 +73,22 @@ type Order = {
   items: Item[];
 };
 
+type UploadItem = {
+  product_id: number;
+  product_name: string;
+  unit: string;
+  quantity: number;
+  price: number;
+  total: number;
+};
+
+type Pagination = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+
 export default function OrdersPage() {
   const { message } = App.useApp();
   const screens = useBreakpoint();
@@ -66,10 +97,28 @@ export default function OrdersPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<string>("all");
+  const [debtFilter, setDebtFilter] = useState<string>("all");
+  const [driverFilter, setDriverFilter] = useState<number | null>(null);
+  const [agentFilter, setAgentFilter] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState<Order | null>(null);
+
+  // Upload Excel state
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadStep, setUploadStep] = useState(0);
+  const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
+  const [uploadAgentId, setUploadAgentId] = useState<number | null>(null);
+  const [uploadDriverId, setUploadDriverId] = useState<number | null>(null);
+  const [uploadDate, setUploadDate] = useState<Dayjs | null>(null);
+  const [uploadSubmitting, setUploadSubmitting] = useState(false);
 
   const [form] = Form.useForm<{
     agent_id: number;
@@ -89,29 +138,53 @@ export default function OrdersPage() {
     [itemsWatched]
   );
 
-  const load = async () => {
+  const loadOrders = async (page = 1, status = filter, debt = debtFilter, driver = driverFilter, agent = agentFilter) => {
     setLoading(true);
-    const [a, p, d, o] = await Promise.all([
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("limit", "20");
+    if (status !== "all") params.set("status", status);
+    if (debt !== "all") params.set("debt", debt);
+    if (driver !== null) params.set("user_id", String(driver));
+    if (agent !== null) params.set("agent_id", String(agent));
+
+    const res = await fetch(`/api/orders?${params}`);
+    const json = await res.json();
+    setOrders(json.data || []);
+    setPagination(json.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 });
+    setLoading(false);
+  };
+
+  const loadMasterData = async () => {
+    const [a, p, d] = await Promise.all([
       fetch("/api/agents").then((r) => r.json()),
       fetch("/api/products").then((r) => r.json()),
       fetch("/api/users").then((r) => r.json()),
-      fetch("/api/orders").then((r) => r.json()),
     ]);
     setAgents(Array.isArray(a) ? a : []);
     setProducts(Array.isArray(p) ? p : []);
     const driverList = Array.isArray(d) ? d : [];
-    setDrivers(driverList.filter((x: Driver) => x.role === "driver" && x.active));
-    setOrders(Array.isArray(o) ? o : []);
-    setLoading(false);
+    setDrivers(driverList.filter((x: Driver) => getRoleName(x) === "driver" && x.active));
   };
+
   useEffect(() => {
-    load();
+    loadMasterData();
+    loadOrders();
   }, []);
 
   const openCreate = () => {
     form.resetFields();
     form.setFieldsValue({ items: [], paid: 0 });
     setOpen(true);
+  };
+
+  const openUpload = () => {
+    setUploadStep(0);
+    setUploadItems([]);
+    setUploadAgentId(null);
+    setUploadDriverId(null);
+    setUploadDate(null);
+    setUploadOpen(true);
   };
 
   const submit = async () => {
@@ -139,8 +212,72 @@ export default function OrdersPage() {
     }
     message.success("Đã tạo đơn");
     setOpen(false);
-    load();
+    loadOrders(1);
   };
+
+  const handleUploadFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/orders/parse-excel", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        message.error(err.error || "Lỗi đọc file Excel");
+        return false;
+      }
+
+      const data = await res.json();
+      setUploadItems(data.items);
+      setUploadStep(1);
+    } catch {
+      message.error("Lỗi upload file");
+    }
+    return false;
+  };
+
+  const submitUpload = async () => {
+    if (!uploadAgentId) {
+      message.error("Vui lòng chọn đại lý");
+      return;
+    }
+
+    setUploadSubmitting(true);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agent_id: uploadAgentId,
+          user_id: uploadDriverId || null,
+          delivery_date: uploadDate ? uploadDate.format("YYYY-MM-DD") : null,
+          items: uploadItems.map((i) => ({
+            product_id: i.product_id,
+            quantity: i.quantity,
+            price: i.price,
+          })),
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        message.error(err.error || "Lỗi tạo đơn hàng");
+        return;
+      }
+
+      message.success("Đã tạo đơn hàng từ Excel!");
+      setUploadOpen(false);
+      loadOrders(1);
+    } finally {
+      setUploadSubmitting(false);
+    }
+  };
+
+  const uploadTotal = uploadItems.reduce((sum, i) => sum + i.total, 0);
 
   const updateStatus = async (id: number, status: string) => {
     await fetch(`/api/orders/${id}`, {
@@ -149,7 +286,7 @@ export default function OrdersPage() {
       body: JSON.stringify({ status }),
     });
     message.success("Đã cập nhật");
-    load();
+    loadOrders(pagination.page);
   };
 
   const updatePaid = async (id: number, paid: number) => {
@@ -158,16 +295,61 @@ export default function OrdersPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ paid }),
     });
-    load();
+    loadOrders(pagination.page);
   };
 
   const del = async (id: number) => {
     await fetch(`/api/orders/${id}`, { method: "DELETE" });
     message.success("Đã xóa");
-    load();
+    loadOrders(pagination.page);
   };
 
-  const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  const handleFilterChange = (value: string) => {
+    setFilter(value);
+    loadOrders(1, value, debtFilter, driverFilter, agentFilter);
+  };
+
+  const handleDebtFilterChange = (value: string) => {
+    setDebtFilter(value);
+    loadOrders(1, filter, value, driverFilter, agentFilter);
+  };
+
+  const handleDriverFilterChange = (value: number | undefined) => {
+    const v = value ?? null;
+    setDriverFilter(v);
+    loadOrders(1, filter, debtFilter, v, agentFilter);
+  };
+
+  const handleAgentFilterChange = (value: number | undefined) => {
+    const v = value ?? null;
+    setAgentFilter(v);
+    loadOrders(1, filter, debtFilter, driverFilter, v);
+  };
+
+  const handlePageChange = (page: number) => {
+    loadOrders(page, filter, debtFilter, driverFilter, agentFilter);
+  };
+
+  const createMenuItems = [
+    {
+      key: "manual",
+      label: "Tạo thủ công",
+      icon: <PlusOutlined />,
+      onClick: openCreate,
+    },
+    {
+      key: "upload",
+      label: "Upload Excel",
+      icon: <UploadOutlined />,
+      onClick: openUpload,
+    },
+    {
+      key: "template",
+      label: "Tải mẫu Excel",
+      icon: <DownloadOutlined />,
+      onClick: () => window.open("/api/export/order-template", "_blank"),
+    },
+  ];
 
   return (
     <>
@@ -178,7 +360,7 @@ export default function OrdersPage() {
         <Space wrap className="!ml-auto">
           <Select
             value={filter}
-            onChange={setFilter}
+            onChange={handleFilterChange}
             className="!w-[140px] sm:!w-[180px]"
             options={[
               { value: "all", label: "Tất cả trạng thái" },
@@ -188,6 +370,40 @@ export default function OrdersPage() {
               { value: "cancelled", label: "Đã hủy" },
             ]}
           />
+          <Select
+            value={debtFilter}
+            onChange={handleDebtFilterChange}
+            className="!w-[120px] sm:!w-[140px]"
+            options={[
+              { value: "all", label: "Tất cả nợ" },
+              { value: "has_debt", label: "Còn nợ" },
+              { value: "no_debt", label: "Hết nợ" },
+            ]}
+          />
+          <Select
+            value={driverFilter}
+            onChange={handleDriverFilterChange}
+            allowClear
+            placeholder="Tài xế"
+            className="!w-[130px] sm:!w-[160px]"
+            options={drivers.map((d) => ({
+              value: d.id,
+              label: d.vehicle_plate ? `${d.name} (${d.vehicle_plate})` : d.name,
+            }))}
+          />
+          <Select
+            value={agentFilter}
+            onChange={handleAgentFilterChange}
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            placeholder="Đại lý"
+            className="!w-[130px] sm:!w-[160px]"
+            options={agents.map((a) => ({
+              value: a.id,
+              label: a.name,
+            }))}
+          />
           <Button
             icon={<DownloadOutlined />}
             href={`/api/export/orders${filter !== "all" ? `?status=${filter}` : ""}`}
@@ -195,10 +411,13 @@ export default function OrdersPage() {
             <span className="hidden sm:inline">Xuất Excel</span>
             <span className="sm:hidden">Xuất</span>
           </Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            <span className="hidden sm:inline">Tạo đơn</span>
-            <span className="sm:hidden">Tạo</span>
-          </Button>
+          <Dropdown menu={{ items: createMenuItems }} placement="bottomRight">
+            <Button type="primary" icon={<PlusOutlined />}>
+              <span className="hidden sm:inline">Tạo đơn</span>
+              <span className="sm:hidden">Tạo</span>
+              <DownOutlined className="ml-1" style={{ fontSize: 10 }} />
+            </Button>
+          </Dropdown>
         </Space>
       </div>
 
@@ -208,12 +427,12 @@ export default function OrdersPage() {
             <div className="flex justify-center py-10">
               <Spin />
             </div>
-          ) : filtered.length === 0 ? (
+          ) : orders.length === 0 ? (
             <Card>
               <Empty description="Không có đơn nào" />
             </Card>
           ) : (
-            filtered.map((o) => {
+            orders.map((o) => {
               const debt = o.total - o.paid;
               return (
                 <Card
@@ -248,14 +467,13 @@ export default function OrdersPage() {
                     </div>
                     <div>
                       <div className="text-slate-500">Đã trả</div>
-                      <InputNumber
+                      <CommonInputNumber
                         size="small"
                         className="!w-full"
                         value={o.paid}
                         min={0}
-                        {...vndInputProps}
                         onBlur={(e) => {
-                          const v = Number(e.target.value.replace(/\D/g, "")) || 0;
+                          const v = Number(String(e.target.value).replace(/\D/g, "")) || 0;
                           if (v !== o.paid) updatePaid(o.id, v);
                         }}
                       />
@@ -299,14 +517,33 @@ export default function OrdersPage() {
               );
             })
           )}
+          {pagination.total > pagination.limit && (
+            <div className="flex justify-center mt-4">
+              <Pagination
+                current={pagination.page}
+                pageSize={pagination.limit}
+                total={pagination.total}
+                onChange={handlePageChange}
+                showSizeChanger={false}
+                simple
+              />
+            </div>
+          )}
         </div>
       ) : (
       <Card styles={{ body: { padding: 0 } }}>
         <Table
-          dataSource={filtered}
+          dataSource={orders}
           loading={loading}
           rowKey="id"
-          pagination={{ pageSize: 15 }}
+          pagination={{
+            current: pagination.page,
+            pageSize: pagination.limit,
+            total: pagination.total,
+            showSizeChanger: false,
+            showTotal: (total) => `Tổng ${total} đơn`,
+            onChange: handlePageChange,
+          }}
           scroll={{ x: 1200 }}
           columns={[
             { title: "#", dataIndex: "id", width: 60, render: (v) => `#${v}` },
@@ -336,14 +573,13 @@ export default function OrdersPage() {
               width: 150,
               align: "right",
               render: (_, r) => (
-                <InputNumber
+                <CommonInputNumber
                   size="small"
                   className="!w-full"
                   value={r.paid}
                   min={0}
-                  {...vndInputProps}
                   onBlur={(e) => {
-                    const v = Number(e.target.value.replace(/\D/g, "")) || 0;
+                    const v = Number(String(e.target.value).replace(/\D/g, "")) || 0;
                     if (v !== r.paid) updatePaid(r.id, v);
                   }}
                 />
@@ -409,6 +645,7 @@ export default function OrdersPage() {
       </Card>
       )}
 
+      {/* Manual Create Drawer */}
       <FormDrawer
         title="Tạo đơn hàng"
         open={open}
@@ -445,11 +682,9 @@ export default function OrdersPage() {
               <DatePicker className="!w-full" format="YYYY-MM-DD" />
             </Form.Item>
             <Form.Item label="Trả trước (VNĐ)" name="paid">
-              <InputNumber
+              <CommonInputNumber
                 className="!w-full"
                 min={0}
-                step={10000}
-                {...vndInputProps}
               />
             </Form.Item>
           </div>
@@ -498,7 +733,7 @@ export default function OrdersPage() {
                         noStyle
                         rules={[{ required: true }]}
                       >
-                        <InputNumber
+                        <CommonInputNumber
                           placeholder="SL"
                           min={1}
                           className="!w-[80px] sm:!w-[90px]"
@@ -510,11 +745,10 @@ export default function OrdersPage() {
                         noStyle
                         rules={[{ required: true }]}
                       >
-                        <InputNumber
+                        <CommonInputNumber
                           placeholder="Giá"
                           min={0}
                           className="!flex-1 sm:!w-[140px]"
-                          {...vndInputProps}
                         />
                       </Form.Item>
                       <Button danger onClick={() => remove(f.name)}>
@@ -544,6 +778,160 @@ export default function OrdersPage() {
         </Form>
       </FormDrawer>
 
+      {/* Upload Excel Modal */}
+      <Modal
+        title="Tạo đơn từ Excel"
+        open={uploadOpen}
+        onCancel={() => setUploadOpen(false)}
+        footer={null}
+        width={800}
+        destroyOnHidden
+      >
+        <Steps
+          current={uploadStep}
+          items={[
+            { title: "Tải file", icon: <FileExcelOutlined /> },
+            { title: "Xác nhận" },
+          ]}
+          className="mb-6"
+        />
+
+        {uploadStep === 0 && (
+          <div className="text-center py-8">
+            <FileExcelOutlined className="text-6xl text-green-600 mb-4" />
+            <Typography.Title level={4}>Upload file Excel đặt hàng</Typography.Title>
+            <Typography.Text type="secondary" className="block mb-6">
+              Tải mẫu Excel, điền số lượng cần đặt rồi upload lên hệ thống
+            </Typography.Text>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+              <Button
+                icon={<DownloadOutlined />}
+                href="/api/export/order-template"
+                target="_blank"
+              >
+                Tải mẫu Excel
+              </Button>
+              <Upload
+                accept=".xlsx,.xls"
+                showUploadList={false}
+                beforeUpload={handleUploadFile}
+              >
+                <Button type="primary" icon={<UploadOutlined />}>
+                  Upload file đặt hàng
+                </Button>
+              </Upload>
+            </div>
+
+            <Alert
+              type="info"
+              showIcon
+              message="Hướng dẫn"
+              description={
+                <ul className="text-left mt-2 space-y-1">
+                  <li>1. Tải mẫu Excel về máy</li>
+                  <li>2. Điền số lượng vào cột "Số lượng"</li>
+                  <li>3. Upload file lên hệ thống</li>
+                  <li>4. Chọn đại lý và xác nhận đơn hàng</li>
+                </ul>
+              }
+            />
+          </div>
+        )}
+
+        {uploadStep === 1 && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+              <div>
+                <Typography.Text strong>Đại lý *</Typography.Text>
+                <Select
+                  className="!w-full mt-1"
+                  placeholder="Chọn đại lý"
+                  showSearch
+                  optionFilterProp="label"
+                  value={uploadAgentId}
+                  onChange={setUploadAgentId}
+                  options={agents.map((a) => ({ value: a.id, label: a.name }))}
+                />
+              </div>
+              <div>
+                <Typography.Text strong>Tài xế</Typography.Text>
+                <Select
+                  className="!w-full mt-1"
+                  placeholder="Tùy chọn"
+                  allowClear
+                  value={uploadDriverId}
+                  onChange={setUploadDriverId}
+                  options={drivers.map((d) => ({
+                    value: d.id,
+                    label: `${d.name}${d.vehicle_plate ? ` (${d.vehicle_plate})` : ""}`,
+                  }))}
+                />
+              </div>
+              <div>
+                <Typography.Text strong>Ngày giao</Typography.Text>
+                <DatePicker
+                  className="!w-full mt-1"
+                  format="YYYY-MM-DD"
+                  value={uploadDate}
+                  onChange={setUploadDate}
+                />
+              </div>
+            </div>
+
+            <Table
+              dataSource={uploadItems}
+              rowKey="product_id"
+              pagination={false}
+              scroll={{ x: 600, y: 300 }}
+              size="small"
+              columns={[
+                { title: "Sản phẩm", dataIndex: "product_name" },
+                { title: "ĐVT", dataIndex: "unit", width: 80 },
+                { title: "SL", dataIndex: "quantity", align: "right", width: 80 },
+                {
+                  title: "Đơn giá",
+                  dataIndex: "price",
+                  align: "right",
+                  width: 120,
+                  render: (v) => fmtVND(v),
+                },
+                {
+                  title: "Thành tiền",
+                  dataIndex: "total",
+                  align: "right",
+                  width: 120,
+                  render: (v) => <b>{fmtVND(v)}</b>,
+                },
+              ]}
+              summary={() => (
+                <Table.Summary.Row>
+                  <Table.Summary.Cell index={0} colSpan={4}>
+                    <b>Tổng cộng</b>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={4} align="right">
+                    <b className="text-lg text-blue-600">{fmtVND(uploadTotal)}</b>
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
+              )}
+            />
+
+            <div className="flex justify-end gap-3 mt-6">
+              <Button onClick={() => setUploadStep(0)}>Chọn file khác</Button>
+              <Button
+                type="primary"
+                loading={uploadSubmitting}
+                onClick={submitUpload}
+                disabled={!uploadAgentId}
+              >
+                Tạo đơn hàng
+              </Button>
+            </div>
+          </>
+        )}
+      </Modal>
+
+      {/* Order Detail Modal */}
       <Modal
         title={detail ? `Đơn #${detail.id} — ${detail.agent_name}` : ""}
         open={!!detail}
@@ -580,7 +968,7 @@ export default function OrdersPage() {
               size="small"
               scroll={{ x: 480 }}
               dataSource={detail.items}
-              rowKey={(r, i) => `${r.product_id}_${i}`}
+              rowKey={(r) => r.id || `${r.product_id}_${r.price}`}
               columns={[
                 { title: "Sản phẩm", dataIndex: "product_name", render: (v) => v || "(đã xóa)" },
                 { title: "SL", dataIndex: "quantity", width: 80, align: "right" },

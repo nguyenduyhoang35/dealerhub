@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -26,63 +26,70 @@ import {
   CheckCircleOutlined,
   ArrowRightOutlined,
   AppstoreOutlined,
+  LoadingOutlined,
 } from "@ant-design/icons";
 import { fmtVND } from "@/lib/format";
-
-type Category = {
-  id: number;
-  name: string;
-};
-
-type Product = {
-  id: number;
-  name: string;
-  unit: string;
-  price: number;
-  category_id: number | null;
-  category: Category | null;
-};
+import { useCategories, useProductsInfinite, type Product } from "@/hooks";
 
 type CartItem = Product & { qty: number };
 
 export default function ProductsPage() {
   const router = useRouter();
   const { notification } = App.useApp();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [addedProduct, setAddedProduct] = useState<number | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
+  // Debounce search
   useEffect(() => {
-    fetch("/api/products")
-      .then((r) => r.json())
-      .then((data) => setProducts(Array.isArray(data) ? data : []))
-      .finally(() => setLoading(false));
-  }, []);
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  const categories = useMemo(() => {
-    const cats = products
-      .filter((p) => p.category)
-      .map((p) => p.category!)
-      .filter((c, i, arr) => arr.findIndex((x) => x.id === c.id) === i);
-    return cats;
-  }, [products]);
+  // Fetch categories
+  const { data: categories = [] } = useCategories();
 
-  const filtered = useMemo(() => {
-    let list = products;
-    if (activeCategory !== "all") {
-      list = list.filter((p) => p.category_id === Number(activeCategory));
-    }
-    if (search) {
-      list = list.filter((p) =>
-        p.name.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-    return list;
-  }, [products, activeCategory, search]);
+  // Infinite query for products
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+  } = useProductsInfinite({
+    categoryId: activeCategory,
+    search: debouncedSearch,
+  });
+
+  // Flatten all pages into single array
+  const products = useMemo(
+    () => data?.pages.flatMap((page) => page.data) || [],
+    [data]
+  );
+
+  const totalProducts = data?.pages[0]?.pagination.total || 0;
+
+  // Intersection observer for infinite scroll
+  const lastProductRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (isFetchingNextPage) return;
+      if (observerRef.current) observerRef.current.disconnect();
+
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasNextPage) {
+          fetchNextPage();
+        }
+      });
+
+      if (node) observerRef.current.observe(node);
+    },
+    [isFetchingNextPage, hasNextPage, fetchNextPage]
+  );
 
   const addToCart = (product: Product, qty: number) => {
     if (qty <= 0) return;
@@ -151,14 +158,6 @@ export default function ProductsPage() {
     return item?.qty || 0;
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <Spin size="large" />
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-6xl mx-auto pb-24 lg:pb-4">
       {/* Hero Header */}
@@ -169,7 +168,7 @@ export default function ProductsPage() {
               Sản phẩm
             </Typography.Title>
             <Typography.Text className="!text-blue-100">
-              {products.length} sản phẩm có sẵn
+              {totalProducts} sản phẩm có sẵn
             </Typography.Text>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -252,23 +251,48 @@ export default function ProductsPage() {
       )}
 
       {/* Products Grid */}
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center py-20">
+          <Spin size="large" />
+        </div>
+      ) : isError ? (
+        <Card className="text-center py-12">
+          <Empty description="Lỗi tải sản phẩm" />
+        </Card>
+      ) : products.length === 0 ? (
         <Card className="text-center py-12">
           <Empty description="Không tìm thấy sản phẩm" />
         </Card>
       ) : (
-        <Row gutter={[12, 12]}>
-          {filtered.map((product) => (
-            <Col xs={12} sm={8} md={6} lg={6} key={product.id}>
-              <ProductCard
-                product={product}
-                onAdd={addToCart}
-                cartQty={getCartQty(product.id)}
-                isAdded={addedProduct === product.id}
-              />
-            </Col>
-          ))}
-        </Row>
+        <>
+          <Row gutter={[12, 12]}>
+            {products.map((product, index) => (
+              <Col
+                xs={12}
+                sm={8}
+                md={6}
+                lg={6}
+                key={product.id}
+                ref={index === products.length - 1 ? lastProductRef : null}
+              >
+                <ProductCard
+                  product={product}
+                  onAdd={addToCart}
+                  cartQty={getCartQty(product.id)}
+                  isAdded={addedProduct === product.id}
+                />
+              </Col>
+            ))}
+          </Row>
+
+          {/* Loading more indicator */}
+          {isFetchingNextPage && (
+            <div className="flex justify-center py-8">
+              <Spin indicator={<LoadingOutlined spin />} />
+              <span className="ml-2 text-gray-500">Đang tải thêm...</span>
+            </div>
+          )}
+        </>
       )}
 
       {/* Mobile Bottom Bar */}

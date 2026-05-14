@@ -7,8 +7,13 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const date = searchParams.get("date");
   const driverId = searchParams.get("user_id");
+  const agentId = searchParams.get("agent_id");
   const mine = searchParams.get("mine");
   const unassigned = searchParams.get("unassigned");
+  const status = searchParams.get("status");
+  const debt = searchParams.get("debt");
+  const page = Number(searchParams.get("page")) || 1;
+  const limit = Math.min(Number(searchParams.get("limit")) || 20, 100);
 
   let q = db()
     .from("orders")
@@ -16,7 +21,8 @@ export async function GET(req: NextRequest) {
       `*,
        agent:agents(name, phone, address),
        driver:users(name, vehicle_plate),
-       items:order_items(*, product:products(name, unit))`
+       items:order_items(*, product:products(name, unit))`,
+      { count: "exact" }
     );
 
   if (mine === "1" && user?.role === "driver") {
@@ -28,22 +34,26 @@ export async function GET(req: NextRequest) {
   }
 
   if (date) q = q.eq("delivery_date", date);
+  if (agentId) q = q.eq("agent_id", Number(agentId));
+  if (status && status !== "all") {
+    q = q.eq("status", status);
+  }
 
   q = q
-    .order("delivery_date", { ascending: true, nullsFirst: false })
-    .order("route_order", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .order("delivery_date", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .range((page - 1) * limit, page * limit - 1);
 
-  const { data, error } = await q;
+  const { data, error, count } = await q;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const result = (data || []).map((o: any) => ({
+  let result = (data || []).map((o: any) => ({
     ...o,
     agent_name: o.agent?.name || null,
     agent_phone: o.agent?.phone || null,
     agent_address: o.agent?.address || null,
     driver_name: o.driver?.name || null,
-    vehicle_plate: o.driver?.vehicle_plate || null,
+    driver_plate: o.driver?.vehicle_plate || null,
     items: (o.items || []).map((it: any) => ({
       ...it,
       product_name: it.product?.name || null,
@@ -51,7 +61,24 @@ export async function GET(req: NextRequest) {
     })),
   }));
 
-  return NextResponse.json(result);
+  // Filter by debt status
+  if (debt === "has_debt") {
+    result = result.filter((o: any) => o.total > o.paid);
+  } else if (debt === "no_debt") {
+    result = result.filter((o: any) => o.total <= o.paid);
+  }
+
+  const hasDebtFilter = debt === "has_debt" || debt === "no_debt";
+
+  return NextResponse.json({
+    data: result,
+    pagination: {
+      page,
+      limit,
+      total: hasDebtFilter ? result.length : (count || 0),
+      totalPages: hasDebtFilter ? 1 : Math.ceil((count || 0) / limit),
+    },
+  });
 }
 
 type Item = { product_id: number; quantity: number; price: number };

@@ -13,6 +13,7 @@ import {
   LoginOutlined,
   MenuOutlined,
 } from "@ant-design/icons";
+import QueryProvider from "@/components/QueryProvider";
 
 type User = { id: number; name: string; role: string } | null;
 
@@ -246,7 +247,7 @@ export default function SiteLayout({
           paddingTop: isHome ? 0 : 72,
         }}
       >
-        {children}
+        <QueryProvider>{children}</QueryProvider>
       </Layout.Content>
 
       {/* Footer - ẩn trên trang chủ */}

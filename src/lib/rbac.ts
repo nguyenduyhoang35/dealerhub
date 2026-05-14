@@ -65,7 +65,7 @@ export async function getUserWithPermissions(userId: number): Promise<UserWithPe
     name: user.name,
     phone: user.phone,
     role_id: user.role_id,
-    role: user.roles as Role,
+    role: (Array.isArray(user.roles) ? user.roles[0] : user.roles) as Role,
     permissions,
   };
 }

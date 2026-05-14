@@ -4,27 +4,21 @@ import { db } from "@/lib/db";
 export async function PUT(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const id = Number(params.id);
-  const { name, phone, pin, vehicle_plate, role, role_id, agent_id, active } = await req.json();
+  const { name, phone, pin, vehicle_plate, role_id, agent_id, active } = await req.json();
 
   if (!name?.trim() || !phone?.trim())
     return NextResponse.json({ error: "Thiếu thông tin" }, { status: 400 });
 
-  const update: any = {
+  const update: Record<string, unknown> = {
     name: name.trim(),
     phone: phone.trim(),
     vehicle_plate: vehicle_plate || null,
     agent_id: agent_id || null,
     active: !!active,
+    role_id: role_id || null,
   };
 
-  // Support both old role string and new role_id
-  if (role_id) {
-    update.role_id = role_id;
-  } else if (role) {
-    update.role = role;
-  }
-
-  if (pin?.trim()) update.pin = pin.trim();
+  if (pin?.trim()) update.password = pin.trim();
 
   const { error } = await db().from("users").update(update).eq("id", id);
   if (error) {
@@ -43,13 +37,14 @@ export async function DELETE(_: NextRequest, props: { params: Promise<{ id: stri
   const { data: user } = await db()
     .from("users")
     .select(`
-      role,
+      role_id,
       roles(name)
     `)
     .eq("id", id)
     .maybeSingle();
 
-  const roleName = user?.roles?.name || user?.role;
+  const rolesData = user?.roles as { name: string } | { name: string }[] | null;
+  const roleName = Array.isArray(rolesData) ? rolesData[0]?.name : rolesData?.name;
 
   if (roleName === "superadmin") {
     const { count } = await db()
