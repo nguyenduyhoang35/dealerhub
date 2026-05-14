@@ -101,18 +101,22 @@ export default function PaymentModal({
         <div className="py-4">
           <div className="mb-4">
             <Typography.Text className="block mb-2">Số tiền thanh toán:</Typography.Text>
-            <InputNumber
-              value={amount}
-              onChange={(v) => setAmount(v || 0)}
-              min={1000}
-              max={maxAmount}
-              step={1000}
-              formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-              parser={(v) => Number(v?.replace(/,/g, "") || 0)}
-              addonAfter="VNĐ"
-              className="w-full"
-              size="large"
-            />
+            <div className="flex">
+              <InputNumber
+                value={amount}
+                onChange={(v) => setAmount(v || 0)}
+                min={1000}
+                max={maxAmount}
+                step={1000}
+                formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                parser={(v) => Number(v?.replace(/,/g, "") || 0)}
+                className="flex-1"
+                size="large"
+              />
+              <span className="inline-flex items-center px-3 bg-slate-100 border border-l-0 border-slate-300 rounded-r-lg text-slate-600">
+                VNĐ
+              </span>
+            </div>
             <Typography.Text type="secondary" className="text-xs mt-1 block">
               Tối đa: {fmtVND(maxAmount)}
             </Typography.Text>
@@ -136,7 +140,7 @@ export default function PaymentModal({
           <Alert
             type="info"
             showIcon
-            message="Quét mã QR bằng app ngân hàng để thanh toán"
+            title="Quét mã QR bằng app ngân hàng để thanh toán"
             className="mb-4"
           />
 
@@ -181,7 +185,7 @@ export default function PaymentModal({
 
           <Alert
             type="warning"
-            message="Vui lòng giữ nguyên nội dung chuyển khoản để hệ thống tự động ghi nhận"
+            title="Vui lòng giữ nguyên nội dung chuyển khoản để hệ thống tự động ghi nhận"
             className="mb-4 text-left"
           />
 
