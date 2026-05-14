@@ -21,7 +21,7 @@
 | **Date** | `dayjs` | Antd's DatePicker uses dayjs adapter (Antd v6 default) |
 | **Edge protection** | `src/proxy.ts` | Next 16 renamed `middleware.ts` → `proxy.ts`. Export name is `proxy`, not `middleware`. |
 | **Language** | TypeScript 5.5 | Always TS. |
-| **Package manager** | `npm` (with `package-lock.json`) | `package.json` declares `pnpm` as packageManager but lockfile is npm — npm is the working PM. |
+| **Package manager** | `pnpm` (with `pnpm-lock.yaml`) | Use `pnpm install`, `pnpm add`, `pnpm run`. |
 
 ### Avoid for this project (despite being in `tech-stack.md`)
 - **Prisma / Drizzle** — using Supabase JS client directly
