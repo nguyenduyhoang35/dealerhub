@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import { Modal, Typography, Spin, InputNumber, Button, message, Alert } from "antd";
+import { Modal, Typography, Button, message, Alert } from "antd";
+import CommonInputNumber from "@/components/CommonInputNumber";
 import { QrcodeOutlined, CopyOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import { fmtVND } from "@/lib/format";
 
@@ -102,15 +103,12 @@ export default function PaymentModal({
           <div className="mb-4">
             <Typography.Text className="block mb-2">Số tiền thanh toán:</Typography.Text>
             <div className="flex">
-              <InputNumber
+              <CommonInputNumber
                 value={amount}
-                onChange={(v) => setAmount(v || 0)}
+                onChange={(v) => setAmount(Number(v) || 0)}
                 min={1000}
                 max={maxAmount}
-                step={1000}
-                formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                parser={(v) => Number(v?.replace(/,/g, "") || 0)}
-                className="flex-1"
+                className="flex-1 !rounded-r-none"
                 size="large"
               />
               <span className="inline-flex items-center px-3 bg-slate-100 border border-l-0 border-slate-300 rounded-r-lg text-slate-600">
