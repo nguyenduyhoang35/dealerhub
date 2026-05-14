@@ -36,10 +36,10 @@
 ## Folder Layout
 
 ```
-kho/
+dealerhub/
 ├── .claude/                           # AI agent config (this folder)
 ├── scripts/
-│   └── seed.ts                        # Supabase seed (run: npm run seed)
+│   └── seed.ts                        # Supabase seed (run: pnpm seed)
 ├── src/
 │   ├── proxy.ts                       # Edge auth gate (Next 16 — was middleware.ts)
 │   ├── lib/
