@@ -90,7 +90,7 @@ export default function CheckoutPage() {
           <Alert
             type="info"
             className="mt-3"
-            message="Nhân viên sẽ gọi điện xác nhận đơn hàng trong vòng 30 phút"
+            title="Nhân viên sẽ gọi điện xác nhận đơn hàng trong vòng 30 phút"
             showIcon
           />
         </div>
@@ -204,7 +204,7 @@ export default function CheckoutPage() {
         showIcon
         icon={<PhoneOutlined />}
         className="mb-4"
-        message="Xác nhận qua điện thoại"
+        title="Xác nhận qua điện thoại"
         description="Sau khi đặt hàng, nhân viên sẽ gọi điện xác nhận đơn hàng và thời gian giao hàng trong vòng 30 phút."
       />
 

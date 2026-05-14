@@ -87,7 +87,7 @@ export default function LoginPage() {
           {err && (
             <Alert
               type="error"
-              message={err}
+              title={err}
               className="!mb-4"
               showIcon
             />

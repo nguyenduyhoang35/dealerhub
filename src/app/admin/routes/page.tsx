@@ -326,7 +326,7 @@ export default function RoutesPage() {
               <Alert
                 type="warning"
                 showIcon
-                message={`${allToAssign.length} đơn chưa gán xe`}
+                title={`${allToAssign.length} đơn chưa gán xe`}
                 className="!py-0 !border-0 !bg-transparent !p-0"
               />
             </Space>

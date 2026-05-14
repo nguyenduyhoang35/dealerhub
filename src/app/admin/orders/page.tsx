@@ -830,7 +830,7 @@ export default function OrdersPage() {
             <Alert
               type="info"
               showIcon
-              message="Hướng dẫn"
+              title="Hướng dẫn"
               description={
                 <ul className="text-left mt-2 space-y-1">
                   <li>1. Tải mẫu Excel về máy</li>
