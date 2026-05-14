@@ -18,9 +18,17 @@ export type Order = {
   id: number;
   agent_id: number;
   agent_name: string;
+  agent_phone?: string | null;
+  agent_address?: string | null;
+  user_id?: number | null;
+  driver_name?: string | null;
+  driver_plate?: string | null;
+  created_by?: number | null;
+  creator_name?: string | null;
   total: number;
   paid: number;
   status: string;
+  note?: string | null;
   delivery_date: string | null;
   created_at: string;
   items?: OrderItem[];
@@ -30,7 +38,8 @@ export type OrderItem = {
   id: number;
   product_id: number;
   product_name: string;
-  qty: number;
+  product_unit?: string | null;
+  quantity: number;
   price: number;
 };
 
