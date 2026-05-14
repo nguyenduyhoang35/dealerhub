@@ -150,6 +150,15 @@ export default function UsersPage() {
     }
   };
 
+  const toggleActive = async (id: number, active: boolean) => {
+    try {
+      await updateUser.mutateAsync({ id, active });
+      message.success(active ? "Đã kích hoạt" : "Đã tắt");
+    } catch (err: any) {
+      message.error(err.message || "Lỗi cập nhật");
+    }
+  };
+
   return (
     <>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -272,8 +281,13 @@ export default function UsersPage() {
                 title: "Trạng thái",
                 dataIndex: "active",
                 width: 100,
-                render: (v) =>
-                  v ? <Tag color="success">Hoạt động</Tag> : <Tag>Tắt</Tag>,
+                render: (v, r) => (
+                  <Switch
+                    size="small"
+                    checked={!!v}
+                    onChange={(checked) => toggleActive(r.id, checked)}
+                  />
+                ),
               },
               {
                 title: "",

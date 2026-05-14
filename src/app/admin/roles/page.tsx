@@ -193,6 +193,7 @@ export default function RolesPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400">#{r.id}</span>
                       <span className="font-semibold truncate">{r.display_name}</span>
                       {r.is_system && (
                         <Tag color="purple" className="!m-0">
@@ -235,6 +236,7 @@ export default function RolesPage() {
             rowKey="id"
             pagination={false}
             columns={[
+              { title: "#", dataIndex: "id", width: 60 },
               {
                 title: "Tên hiển thị",
                 dataIndex: "display_name",

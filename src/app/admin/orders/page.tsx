@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Table,
   Button,
@@ -128,15 +128,12 @@ export default function OrdersPage() {
     note: string;
     items: { product_id: number; quantity: number; price: number }[];
   }>();
-  const itemsWatched = Form.useWatch("items", form) || [];
-  const totalWatch = useMemo(
-    () =>
-      itemsWatched.reduce(
-        (s, it) => s + (Number(it?.quantity) || 0) * (Number(it?.price) || 0),
-        0
-      ),
-    [itemsWatched]
-  );
+
+  const calcTotal = (items: { quantity?: number; price?: number }[] | undefined) =>
+    (items || []).reduce(
+      (s, it) => s + (Number(it?.quantity) || 0) * (Number(it?.price) || 0),
+      0
+    );
 
   const loadOrders = async (page = 1, status = filter, debt = debtFilter, driver = driverFilter, agent = agentFilter) => {
     setLoading(true);
@@ -776,9 +773,13 @@ export default function OrdersPage() {
             )}
           </Form.List>
 
-          <div className="mt-4 text-right">
-            <Statistic title="Tổng tiền" value={totalWatch} suffix="₫" />
-          </div>
+          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.items !== cur.items}>
+            {() => (
+              <div className="mt-4 text-right">
+                <Statistic title="Tổng tiền" value={calcTotal(form.getFieldValue("items"))} suffix="₫" />
+              </div>
+            )}
+          </Form.Item>
         </Form>
       </FormDrawer>
 

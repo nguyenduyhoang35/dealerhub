@@ -17,7 +17,7 @@ export function useCreateUser() {
 export function useUpdateUser() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...data }: Omit<User, "role" | "agent"> & { pin?: string }) =>
+    mutationFn: ({ id, ...data }: { id: number } & Partial<Omit<User, "id" | "role" | "agent">> & { pin?: string }) =>
       mutate(`/api/users/${id}`, "PUT", data, "Lỗi cập nhật tài khoản"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
