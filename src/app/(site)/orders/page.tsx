@@ -211,11 +211,12 @@ export default function OrdersPage() {
               {
                 title: "",
                 width: 180,
+                align: "right",
                 render: (_, record) => {
                   const debt = record.total - record.paid;
                   return (
-                    <div className="flex gap-1">
-                      {debt > 0 && (
+                    <div className="flex gap-1 justify-end">
+                      {debt > 0 ? (
                         <Button
                           type="primary"
                           icon={<QrcodeOutlined />}
@@ -224,6 +225,8 @@ export default function OrdersPage() {
                         >
                           Thanh toán
                         </Button>
+                      ) : (
+                        <span className="inline-block w-[90px]" />
                       )}
                       <Link href={`/orders/${record.id}`}>
                         <Button type="default" icon={<EyeOutlined />} size="small">
