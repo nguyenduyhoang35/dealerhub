@@ -26,7 +26,7 @@ import {
   SaveOutlined,
 } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
-import { fmtVND } from "@/lib/format";
+import { fmtVND, filterOption } from "@/lib/format";
 import {
   DndContext,
   closestCenter,
@@ -371,6 +371,8 @@ export default function RoutesPage() {
                   <Select
                     placeholder="Chọn xe"
                     style={{ width: "100%" }}
+                    showSearch
+                    filterOption={filterOption}
                     onChange={(v) => assignTo(r.id, v)}
                     options={drivers.map((d) => ({
                       value: d.id,

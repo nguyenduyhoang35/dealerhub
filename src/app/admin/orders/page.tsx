@@ -37,7 +37,7 @@ import {
   DownOutlined,
 } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
-import { fmtVND, STATUS_LABEL, STATUS_TAG } from "@/lib/format";
+import { fmtVND, STATUS_LABEL, STATUS_TAG, filterOption } from "@/lib/format";
 import FormDrawer from "../FormDrawer";
 import CommonInputNumber from "@/components/CommonInputNumber";
 
@@ -384,6 +384,8 @@ export default function OrdersPage() {
             value={driverFilter}
             onChange={handleDriverFilterChange}
             allowClear
+            showSearch
+            filterOption={filterOption}
             placeholder="Tài xế"
             className="!w-[130px] sm:!w-[160px]"
             options={drivers.map((d) => ({
@@ -396,7 +398,7 @@ export default function OrdersPage() {
             onChange={handleAgentFilterChange}
             allowClear
             showSearch
-            optionFilterProp="label"
+            filterOption={filterOption}
             placeholder="Đại lý"
             className="!w-[130px] sm:!w-[160px]"
             options={agents.map((a) => ({
@@ -664,14 +666,16 @@ export default function OrdersPage() {
               <Select
                 showSearch
                 placeholder="Chọn đại lý"
-                optionFilterProp="label"
+                filterOption={filterOption}
                 options={agents.map((a) => ({ value: a.id, label: a.name }))}
               />
             </Form.Item>
             <Form.Item label="Tài xế (tùy chọn)" name="user_id">
               <Select
                 allowClear
+                showSearch
                 placeholder="Gán sau cũng được"
+                filterOption={filterOption}
                 options={drivers.map((d) => ({
                   value: d.id,
                   label: `${d.name}${d.vehicle_plate ? ` (${d.vehicle_plate})` : ""}`,
@@ -710,7 +714,7 @@ export default function OrdersPage() {
                       <Select
                         placeholder="Sản phẩm"
                         showSearch
-                        optionFilterProp="label"
+                        filterOption={filterOption}
                         className="!flex-[2] sm:!min-w-0"
                         options={products.map((p) => ({
                           value: p.id,
@@ -848,7 +852,7 @@ export default function OrdersPage() {
                   className="!w-full mt-1"
                   placeholder="Chọn đại lý"
                   showSearch
-                  optionFilterProp="label"
+                  filterOption={filterOption}
                   value={uploadAgentId}
                   onChange={setUploadAgentId}
                   options={agents.map((a) => ({ value: a.id, label: a.name }))}
@@ -860,6 +864,8 @@ export default function OrdersPage() {
                   className="!w-full mt-1"
                   placeholder="Tùy chọn"
                   allowClear
+                  showSearch
+                  filterOption={filterOption}
                   value={uploadDriverId}
                   onChange={setUploadDriverId}
                   options={drivers.map((d) => ({

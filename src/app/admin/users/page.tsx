@@ -33,6 +33,7 @@ import {
   useUpdateUser,
   useDeleteUser,
 } from "@/hooks";
+import { filterOption } from "@/lib/format";
 
 const { useBreakpoint } = Grid;
 
@@ -349,7 +350,7 @@ export default function UsersPage() {
               <Select
                 placeholder="Chọn đại lý"
                 showSearch
-                optionFilterProp="label"
+                filterOption={filterOption}
                 options={agents.map((a) => ({
                   value: a.id,
                   label: a.name,

@@ -48,3 +48,19 @@ export const STATUS_TAG: Record<string, string> = {
   delivered: "success",
   cancelled: "error",
 };
+
+export function removeAccents(str: string): string {
+  return str
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase();
+}
+
+export function filterOption(input: string, option?: { label?: string }): boolean {
+  if (!option?.label) return false;
+  const search = removeAccents(input);
+  const label = removeAccents(String(option.label));
+  return label.includes(search);
+}
