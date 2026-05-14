@@ -1,13 +1,24 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Card, Upload, Button, Typography, Steps, Table, Alert, message, Result } from "antd";
+import {
+  Card,
+  Upload,
+  Button,
+  Typography,
+  Steps,
+  Table,
+  Alert,
+  message,
+  Result,
+} from "antd";
 import {
   DownloadOutlined,
   UploadOutlined,
   FileExcelOutlined,
   CheckCircleOutlined,
   ArrowLeftOutlined,
+  ShoppingCartOutlined,
 } from "@ant-design/icons";
 import { fmtVND } from "@/lib/format";
 
@@ -103,7 +114,9 @@ export default function UploadOrderPage() {
         <Card>
           <div className="text-center py-8">
             <FileExcelOutlined className="text-6xl text-green-600 mb-4" />
-            <Typography.Title level={4}>Upload file Excel đặt hàng</Typography.Title>
+            <Typography.Title level={4}>
+              Upload file Excel đặt hàng
+            </Typography.Title>
             <Typography.Text type="secondary" className="block mb-6">
               Tải mẫu Excel, điền số lượng cần đặt rồi upload lên hệ thống
             </Typography.Text>
@@ -140,6 +153,23 @@ export default function UploadOrderPage() {
                 </ul>
               }
             />
+
+            <div className="mt-8 pt-6 border border-t border-dashed border-slate-200 p-4">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Typography.Text type="secondary">
+                  Hoặc đặt hàng trực tiếp:
+                </Typography.Text>
+                <Link href="/products">
+                  <Button
+                    icon={<ShoppingCartOutlined />}
+                    type="default"
+                    className="!border-blue-500 !text-blue-600 hover:!bg-blue-50"
+                  >
+                    Chọn sản phẩm
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
         </Card>
       )}

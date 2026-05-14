@@ -2,6 +2,58 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 
+export async function GET(_: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const id = Number(params.id);
+  const user = await currentUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Vui lòng đăng nhập" }, { status: 401 });
+  }
+
+  const { data, error } = await db()
+    .from("orders")
+    .select(
+      `*,
+       agent:agents(name, phone, address),
+       driver:users!orders_user_id_fkey(name, vehicle_plate),
+       creator:users!orders_created_by_fkey(name),
+       items:order_items(*, product:products(name, unit))`
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!data) return NextResponse.json({ error: "Không tìm thấy đơn hàng" }, { status: 404 });
+
+  // Check permission: admin, creator, or same agent
+  const isAdmin = user.role === "admin" || user.role === "superadmin";
+  const isCreator = data.created_by === user.id;
+  const isSameAgent = user.agent_id && data.agent_id === user.agent_id;
+  const isDriver = user.role === "driver" && data.user_id === user.id;
+
+  if (!isAdmin && !isCreator && !isSameAgent && !isDriver) {
+    return NextResponse.json({ error: "Bạn không có quyền xem đơn hàng này" }, { status: 403 });
+  }
+
+  const order = {
+    ...data,
+    agent_name: data.agent?.name || null,
+    agent_phone: data.agent?.phone || null,
+    agent_address: data.agent?.address || null,
+    driver_name: data.driver?.name || null,
+    driver_plate: data.driver?.vehicle_plate || null,
+    creator_name: data.creator?.name || null,
+    items: (data.items || []).map((it: any) => ({
+      ...it,
+      product_name: it.product?.name || null,
+      product_unit: it.product?.unit || null,
+    })),
+  };
+
+  return NextResponse.json(order);
+}
+
 const ALLOWED = ["pending", "delivering", "delivered", "cancelled"];
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {

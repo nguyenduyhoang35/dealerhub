@@ -39,13 +39,20 @@ export type DebtInfo = {
   total_revenue: number;
   total_paid: number;
   total_debt: number;
-  recent_orders: {
+  orders: {
     id: number;
     total: number;
     paid: number;
     status: string;
     created_at: string;
+    delivery_date: string | null;
   }[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 };
 
 export type PaginatedResponse<T> = {

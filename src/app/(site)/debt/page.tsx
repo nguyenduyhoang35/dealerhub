@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { Card, Table, Typography, Empty, Spin, Tag } from "antd";
 import {
   DollarOutlined,
@@ -11,7 +12,9 @@ import { useDebt } from "@/hooks";
 import dayjs from "dayjs";
 
 export default function DebtPage() {
-  const { data, isLoading, isError } = useDebt();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const { data, isLoading, isError } = useDebt({ page, limit: pageSize });
 
   if (isLoading) {
     return (
@@ -88,7 +91,7 @@ export default function DebtPage() {
         styles={{ body: { padding: 0 } }}
         className="overflow-hidden"
       >
-        {data.recent_orders.length === 0 ? (
+        {data.orders.length === 0 ? (
           <div className="py-12 text-center">
             <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <DollarOutlined className="text-3xl text-orange-400" />
@@ -97,35 +100,51 @@ export default function DebtPage() {
           </div>
         ) : (
           <Table
-            dataSource={data.recent_orders}
+            dataSource={data.orders}
             rowKey="id"
-            pagination={false}
+            pagination={{
+              current: page,
+              pageSize,
+              total: data.pagination.total,
+              showSizeChanger: true,
+              pageSizeOptions: [10, 20, 50],
+              showTotal: (total) => `${total} đơn hàng`,
+              onChange: (p, size) => {
+                setPage(p);
+                setPageSize(size);
+              },
+            }}
             columns={[
               {
                 title: "Mã đơn",
                 dataIndex: "id",
+                width: 80,
                 render: (v) => <span className="font-mono font-semibold text-orange-600">#{v}</span>,
               },
               {
-                title: "Ngày",
+                title: "Ngày đặt",
                 dataIndex: "created_at",
-                render: (v) => dayjs(v).format("DD/MM/YYYY"),
+                width: 140,
+                render: (v) => dayjs(v).format("DD/MM/YYYY HH:mm"),
               },
               {
                 title: "Tổng tiền",
                 dataIndex: "total",
                 align: "right",
+                width: 120,
                 render: (v) => <b>{fmtVND(v)}</b>,
               },
               {
                 title: "Đã trả",
                 dataIndex: "paid",
                 align: "right",
+                width: 120,
                 render: (v) => <span className="text-green-600 font-medium">{fmtVND(v)}</span>,
               },
               {
                 title: "Còn nợ",
                 align: "right",
+                width: 120,
                 render: (_, r) => {
                   const debt = r.total - r.paid;
                   return (
@@ -138,6 +157,7 @@ export default function DebtPage() {
               {
                 title: "Trạng thái",
                 dataIndex: "status",
+                width: 110,
                 render: (v) => (
                   <Tag color={STATUS_TAG[v as keyof typeof STATUS_TAG]}>
                     {STATUS_LABEL[v as keyof typeof STATUS_LABEL]}

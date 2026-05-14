@@ -554,6 +554,19 @@ export default function OrdersPage() {
               render: (v) => v || <span className="text-slate-400">—</span>,
             },
             {
+              title: "Người tạo",
+              dataIndex: "creator_name",
+              width: 120,
+              render: (v) => v || <span className="text-slate-400">—</span>,
+            },
+            {
+              title: "Ngày tạo",
+              dataIndex: "created_at",
+              width: 140,
+              render: (v) => dayjs(v).format("DD/MM/YYYY HH:mm"),
+              sorter: (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+            },
+            {
               title: "Ngày giao",
               dataIndex: "delivery_date",
               width: 140,

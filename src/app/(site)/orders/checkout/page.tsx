@@ -23,6 +23,7 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import { fmtVND } from "@/lib/format";
+import { useCreateOrder } from "@/hooks";
 import dayjs from "dayjs";
 import Link from "next/link";
 
@@ -43,6 +44,7 @@ type UserInfo = {
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const createOrder = useCreateOrder();
   const { message, modal } = App.useApp();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [user, setUser] = useState<UserInfo | null>(null);
@@ -100,25 +102,16 @@ export default function CheckoutPage() {
       onOk: async () => {
         setLoading(true);
         try {
-          const res = await fetch("/api/orders", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              agent_id: user.agent_id,
-              items: cart.map((c) => ({
-                product_id: c.id,
-                qty: c.qty,
-                price: c.price,
-              })),
-              note: values.note || "",
-              delivery_date: values.delivery_date?.format("YYYY-MM-DD HH:mm") || null,
-            }),
+          await createOrder.mutateAsync({
+            agent_id: user.agent_id!,
+            items: cart.map((c) => ({
+              product_id: c.id,
+              qty: c.qty,
+              price: c.price,
+            })),
+            note: values.note || "",
+            delivery_date: values.delivery_date?.format("YYYY-MM-DD HH:mm") || undefined,
           });
-
-          if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.error || "Đặt hàng thất bại");
-          }
 
           sessionStorage.removeItem("dealerhub_cart");
           localStorage.removeItem("dealerhub_cart");

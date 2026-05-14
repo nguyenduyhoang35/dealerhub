@@ -35,9 +35,13 @@ export function useOrder(id: number | string) {
   });
 }
 
-export function useDebt() {
+export function useDebt(params?: { page?: number; limit?: number }) {
+  const queryParams = new URLSearchParams();
+  if (params?.page) queryParams.set("page", String(params.page));
+  if (params?.limit) queryParams.set("limit", String(params.limit));
+
   return useQuery({
-    queryKey: ["debt"],
-    queryFn: () => fetcher<DebtInfo>("/api/debt"),
+    queryKey: ["debt", params],
+    queryFn: () => fetcher<DebtInfo>(`/api/debt?${queryParams}`),
   });
 }

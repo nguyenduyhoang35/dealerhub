@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button, Card, Row, Col, Rate } from "antd";
@@ -17,6 +18,16 @@ import {
 } from "@ant-design/icons";
 
 export default function HomePage() {
+  const [user, setUser] = useState<{ id: number } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setUser(data?.user || null))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="overflow-hidden">
       {/* Hero Section - Full Width, Full Height */}
@@ -204,7 +215,8 @@ export default function HomePage() {
             title="Hỗ trợ 24/7"
             description="Đội ngũ CSKH luôn sẵn sàng hỗ trợ qua hotline và Zalo."
             color="teal"
-            href="/login"
+            href="https://zalo.me/0123456789"
+            external
           />
         </div>
       </section>
@@ -310,14 +322,16 @@ export default function HomePage() {
               Đăng ký miễn phí ngay hôm nay và trải nghiệm cách đặt hàng sỉ hiện đại
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/login">
-                <Button
-                  size="large"
-                  className="!bg-white !text-blue-600 !border-0 !h-12 !px-8 !rounded-xl !font-semibold w-full sm:w-auto"
-                >
-                  Đăng nhập ngay
-                </Button>
-              </Link>
+              {!loading && !user && (
+                <Link href="/login">
+                  <Button
+                    size="large"
+                    className="!bg-white !text-blue-600 !border-0 !h-12 !px-8 !rounded-xl !font-semibold w-full sm:w-auto"
+                  >
+                    Đăng nhập ngay
+                  </Button>
+                </Link>
+              )}
               <Button
                 size="large"
                 icon={<PhoneOutlined />}
@@ -366,6 +380,7 @@ function FeatureCard({
   color,
   highlight,
   href,
+  external,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -373,6 +388,7 @@ function FeatureCard({
   color: string;
   highlight?: boolean;
   href: string;
+  external?: boolean;
 }) {
   const colors: Record<string, { gradient: string; iconBg: string; iconText: string; shadow: string }> = {
     blue: {
@@ -414,8 +430,13 @@ function FeatureCard({
   };
   const c = colors[color];
 
+  const Wrapper = external ? "a" : Link;
+  const linkProps = external
+    ? { href, target: "_blank", rel: "noopener noreferrer", className: "block" }
+    : { href, className: "block" };
+
   return (
-    <Link href={href} className="block">
+    <Wrapper {...(linkProps as any)}>
       <div
         className={`group relative bg-white rounded-2xl p-6 transition-all duration-300 hover:-translate-y-2 cursor-pointer overflow-hidden h-full ${
           highlight
@@ -442,13 +463,13 @@ function FeatureCard({
 
         {/* Arrow indicator */}
         <div className="mt-4 flex items-center text-sm font-medium text-slate-400 group-hover:text-blue-600 transition-colors">
-          <span>Tìm hiểu thêm</span>
+          <span>{external ? "Liên hệ ngay" : "Tìm hiểu thêm"}</span>
           <svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </div>
       </div>
-    </Link>
+    </Wrapper>
   );
 }
 
