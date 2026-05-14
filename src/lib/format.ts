@@ -49,6 +49,19 @@ export const STATUS_TAG: Record<string, string> = {
   cancelled: "error",
 };
 
+// Payment status helpers
+export const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  unpaid: "Chưa TT",
+  partial: "TT một phần",
+  paid: "Đã TT",
+};
+
+export const PAYMENT_STATUS_TAG: Record<string, string> = {
+  unpaid: "error",
+  partial: "warning",
+  paid: "success",
+};
+
 export function removeAccents(str: string): string {
   return str
     .normalize("NFD")

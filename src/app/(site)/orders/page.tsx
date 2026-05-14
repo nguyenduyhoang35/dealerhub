@@ -8,7 +8,13 @@ import {
   FileTextOutlined,
   ShoppingCartOutlined,
 } from "@ant-design/icons";
-import { fmtVND, STATUS_LABEL, STATUS_TAG } from "@/lib/format";
+import {
+  fmtVND,
+  STATUS_LABEL,
+  STATUS_TAG,
+  PAYMENT_STATUS_LABEL,
+  PAYMENT_STATUS_TAG,
+} from "@/lib/format";
 import { useOrders } from "@/hooks";
 import dayjs from "dayjs";
 
@@ -179,12 +185,22 @@ export default function OrdersPage() {
                 render: (v) => <span className="text-green-600 font-medium">{fmtVND(v)}</span>,
               },
               {
-                title: "Trạng thái",
+                title: "Giao hàng",
                 dataIndex: "status",
-                width: 120,
+                width: 110,
                 render: (v) => (
                   <Tag color={STATUS_TAG[v as keyof typeof STATUS_TAG]}>
                     {STATUS_LABEL[v as keyof typeof STATUS_LABEL]}
+                  </Tag>
+                ),
+              },
+              {
+                title: "Thanh toán",
+                dataIndex: "payment_status",
+                width: 120,
+                render: (v: string) => (
+                  <Tag color={PAYMENT_STATUS_TAG[v]}>
+                    {PAYMENT_STATUS_LABEL[v]}
                   </Tag>
                 ),
               },

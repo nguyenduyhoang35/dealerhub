@@ -14,6 +14,9 @@ export type Product = {
   category: Category | null;
 };
 
+export type OrderStatus = "pending" | "delivering" | "delivered" | "cancelled";
+export type PaymentStatus = "unpaid" | "partial" | "paid";
+
 export type Order = {
   id: number;
   agent_id: number;
@@ -27,7 +30,8 @@ export type Order = {
   creator_name?: string | null;
   total: number;
   paid: number;
-  status: string;
+  status: OrderStatus;
+  payment_status: PaymentStatus;
   note?: string | null;
   delivery_date: string | null;
   created_at: string;

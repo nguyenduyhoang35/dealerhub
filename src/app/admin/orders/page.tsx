@@ -37,7 +37,7 @@ import {
   DownOutlined,
 } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
-import { fmtVND, STATUS_LABEL, STATUS_TAG, filterOption } from "@/lib/format";
+import { fmtVND, STATUS_LABEL, STATUS_TAG, PAYMENT_STATUS_LABEL, PAYMENT_STATUS_TAG, filterOption } from "@/lib/format";
 import FormDrawer from "../FormDrawer";
 import CommonInputNumber from "@/components/CommonInputNumber";
 
@@ -608,9 +608,9 @@ export default function OrdersPage() {
               ),
             },
             {
-              title: "Trạng thái",
+              title: "Giao hàng",
               dataIndex: "status",
-              width: 150,
+              width: 130,
               render: (s, r) => (
                 <Select
                   value={s}
@@ -622,6 +622,16 @@ export default function OrdersPage() {
                     label: <Tag color={STATUS_TAG[k] as any}>{v}</Tag>,
                   }))}
                 />
+              ),
+            },
+            {
+              title: "Thanh toán",
+              dataIndex: "payment_status",
+              width: 110,
+              render: (v: string) => (
+                <Tag color={PAYMENT_STATUS_TAG[v]}>
+                  {PAYMENT_STATUS_LABEL[v]}
+                </Tag>
               ),
             },
             {
