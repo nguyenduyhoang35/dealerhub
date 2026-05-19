@@ -185,3 +185,70 @@ export type Permission = {
   name: string;
   description: string | null;
 };
+
+export type AgentDebtSummary = {
+  id: number;
+  name: string;
+  phone: string | null;
+  address: string | null;
+  order_count: number;
+  revenue: number;
+  paid: number;
+  debt: number;
+};
+
+export type AdminDebtResponse = {
+  data: AgentDebtSummary[];
+  totals: {
+    total_agents: number;
+    total_revenue: number;
+    total_paid: number;
+    total_debt: number;
+    agents_with_debt: number;
+  };
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+export type AgentDebtDetail = {
+  agent: {
+    id: number;
+    name: string;
+    phone: string | null;
+    address: string | null;
+  };
+  totals: {
+    total_orders: number;
+    total_revenue: number;
+    total_paid: number;
+    total_debt: number;
+  };
+  orders: {
+    id: number;
+    total: number;
+    paid: number;
+    status: string;
+    created_at: string;
+    delivery_date: string | null;
+    note: string | null;
+  }[];
+  payments: {
+    id: number;
+    amount: number;
+    content: string;
+    status: string;
+    created_at: string;
+    completed_at: string | null;
+    order_id: number | null;
+  }[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};

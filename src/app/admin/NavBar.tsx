@@ -17,6 +17,7 @@ import {
   MenuUnfoldOutlined,
   FolderOutlined,
   SafetyCertificateOutlined,
+  WalletOutlined,
 } from "@ant-design/icons";
 
 type NavItem = {
@@ -32,6 +33,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { key: "/admin/categories", icon: <FolderOutlined />, label: <Link href="/admin/categories">Danh mục</Link>, permission: "categories.view" },
   { key: "/admin/products", icon: <AppstoreOutlined />, label: <Link href="/admin/products">Sản phẩm</Link>, permission: "products.view" },
   { key: "/admin/orders", icon: <FileTextOutlined />, label: <Link href="/admin/orders">Đơn hàng</Link>, permission: "orders.view" },
+  { key: "/admin/debt", icon: <WalletOutlined />, label: <Link href="/admin/debt">Công nợ</Link>, permission: "orders.view" },
   { key: "/admin/routes", icon: <EnvironmentOutlined />, label: <Link href="/admin/routes">Lên tuyến</Link>, permission: "routes.view" },
   { key: "/admin/users", icon: <TeamOutlined />, label: <Link href="/admin/users">Người dùng</Link>, permission: "users.view" },
   { key: "/admin/roles", icon: <SafetyCertificateOutlined />, label: <Link href="/admin/roles">Vai trò</Link>, permission: "roles.view" },

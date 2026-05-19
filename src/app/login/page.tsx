@@ -120,7 +120,7 @@ export default function LoginPage() {
             </div>
           </div>
           <div className="text-center text-xs text-slate-400 mt-2">
-            Mật khẩu: <code className="text-slate-600">1234</code>
+            Mật khẩu: <code className="text-slate-600">123456</code>
           </div>
         </div>
       </Card>
